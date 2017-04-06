@@ -51,12 +51,12 @@ Configuration example:
 `pin` numbers must be specified as wPi pin number in the `Pin Configuration` table below
 
 ## Common configuration
-```
+
 | Type                  | Note				|
 |-----------------------|-------------|
 | `name`								| Accessory name |
 | `type`								| Type of accessory |
-```
+
 
 Accessory type could be one of the following:
 * [ContactSensor](#contactsensor)
@@ -106,24 +106,24 @@ wPi pin number must be used in config file
 `ContactSensor` type monitor a GPIO input and reports it as HomeKit ContactSensor.
 
 ###### Configuration
-```
+
 | Parameter                  | Note 																							|
 |----------------------------|----------------------------------------------------|
 | `pin`               		   | mandatory, input pin number to monitor (HIGH : contact detected, LOW : contact not detected) |
 | `inverted`               	 | optional, reverse the behaviour of the GPIO pin (LOW : contact detected, HIGH : contact not detected) |
-```
+
 
 ## Switch/Lightbulb
 
 `Switch` or `Lightbulb` operates a GPIO output as ON/OFF.
 
 ###### Configuration
-```
+
 | Parameter                  | Note 																							|
 |----------------------------|----------------------------------------------------|
 | `pin`               		   | mandatory, output pin number to trigger (on : HIGH, off : LOW) |
 | `inverted`               	 | optional, reverse the behaviour of the GPIO pin  (off : HIGH, on : LOW) |
-```
+
 
 ## MotionSensor
 
@@ -132,14 +132,14 @@ Could be used with this [PIR Sensor](http://snootlab.com/adafruit/285-capteur-de
 An optional OccupancySensor can be configured with a timeout.
 
 ###### Configuration
-```
+
 | Parameter                  | Note 																							|
 |----------------------------|----------------------------------------------------|
 | `pin`               		   | mandatory, input pin number to monitor (HIGH : motion detected, LOW : motion not detected) |
 | `occupancy`            		 | optional, activate an occupancy sensor with a timeout after motion detection |
 | `occupancy.name`           | mandatory, occupancy sensor name |
 | `occupancy.timeout`        | optional, ocupancy timeout in sec after motion detection, default: 60 sec |
-```
+
 
 ## Window/WindowCovering
 
@@ -147,9 +147,8 @@ An optional OccupancySensor can be configured with a timeout.
 When operating, the GPIO is turned on for 200ms to simulate a button pression on the remote control.
 
 ###### Configuration
-```
+
 | Parameter                  | Note 																							|
 |----------------------------|----------------------------------------------------|
 | `pins`               		   | mandatory, output pins numbers to trigger (pins[0] : open, pins[0] : close) |
 | `shiftDuration`            | optional, duration of a shift (close->open or open->close) used to compute intermediate position, default: 20 seconds |
-```
