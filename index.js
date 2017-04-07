@@ -184,6 +184,7 @@ function RollerShutter(accesory, log, config) {
 
 	this.log = log;
 	
+	this.initPosition = config.initPosition || 0;
 	this.openPin = config.pins[0];
 	this.closePin = config.pins[1];
 	
@@ -196,9 +197,11 @@ function RollerShutter(accesory, log, config) {
 	wpi.digitalWrite(this.openPin, wpi.LOW);
 	wpi.digitalWrite(this.closePin, wpi.LOW);
 	
-	this.posCharac = this.service.getCharacteristic(Characteristic.CurrentPosition);
+	this.posCharac = this.service.getCharacteristic(Characteristic.CurrentPosition)
+		.updateValue(this.initPosition);
 	this.service.getCharacteristic(Characteristic.TargetPosition)
-		.on('set', this.setPosition.bind(this));
+		.on('set', this.setPosition.bind(this))
+		.updateValue(this.initPosition);
 		
 	accesory.addService(this.service);
 }

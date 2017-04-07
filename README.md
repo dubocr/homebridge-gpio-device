@@ -36,11 +36,22 @@ Configuration example:
 			"pin": 5
 		},
 		{
+			"accessory": "GPIODevice",
+			"type": "MotionSensor",
+			"name": "Hall Motion",
+			"pin": 3,
+			"occupancy": {
+				"name": "Home Occupancy",
+				"timeout": 3600
+			}
+		},
+		{
 			"accesory": "GPIODevice",
 			"name": "Kitchen Roller Shutter",
 			"type": "WindowCovering",
 			"pins": [12,13]
-			"shiftDuration": 23
+			"shiftDuration": 23,
+			"initPosition": 99
 		}
 	],
 
@@ -52,9 +63,9 @@ Configuration example:
 
 ## Common configuration
 
-| Type                  | Note				|
-|-----------------------|-------------|
-| `name`								| Accessory name |
+| Type                  | Note							|
+|-----------------------|-------------------|
+| `name`								| Accessory name 		|
 | `type`								| Type of accessory |
 
 
@@ -107,10 +118,10 @@ wPi pin number must be used in config file
 
 ###### Configuration
 
-| Parameter                  | Note 																							|
-|----------------------------|----------------------------------------------------|
-| `pin`               		   | mandatory, input pin number to monitor (HIGH : contact detected, LOW : contact not detected) |
-| `inverted`               	 | optional, reverse the behaviour of the GPIO pin (LOW : contact detected, HIGH : contact not detected) |
+| Parameter                  | Type						| Default | Note 																							|
+|----------------------------|----------------|---------|---------------------------------------------------|
+| `pin`               		   | Integer				| N/A			| mandatory, input pin number to monitor (HIGH : contact detected, LOW : contact not detected) |
+| `inverted`               	 | Boolean				| false		| optional, reverse the behaviour of the GPIO pin (LOW : contact detected, HIGH : contact not detected) |
 
 
 ## Switch/Lightbulb
@@ -119,10 +130,10 @@ wPi pin number must be used in config file
 
 ###### Configuration
 
-| Parameter                  | Note 																							|
-|----------------------------|----------------------------------------------------|
-| `pin`               		   | mandatory, output pin number to trigger (on : HIGH, off : LOW) |
-| `inverted`               	 | optional, reverse the behaviour of the GPIO pin  (off : HIGH, on : LOW) |
+| Parameter                  | Type						| Default | Note 																							|
+|----------------------------|----------------|---------|---------------------------------------------------|
+| `pin`               		   | Integer				| N/A			| mandatory, output pin number to trigger (on : HIGH, off : LOW) |
+| `inverted`               	 | Boolean				| false		| optional, reverse the behaviour of the GPIO pin (off : HIGH, on : LOW) |
 
 
 ## MotionSensor
@@ -133,12 +144,12 @@ An optional OccupancySensor can be configured with a timeout.
 
 ###### Configuration
 
-| Parameter                  | Note 																							|
-|----------------------------|----------------------------------------------------|
-| `pin`               		   | mandatory, input pin number to monitor (HIGH : motion detected, LOW : motion not detected) |
-| `occupancy`            		 | optional, activate an occupancy sensor with a timeout after motion detection |
-| `occupancy.name`           | mandatory, occupancy sensor name |
-| `occupancy.timeout`        | optional, ocupancy timeout in sec after motion detection, default: 60 sec |
+| Parameter                  | Type						| Default | Note 																							|
+|----------------------------|----------------|---------|---------------------------------------------------|
+| `pin`               		   | Integer				| N/A			| mandatory, input pin number to monitor (HIGH : motion detected, LOW : motion not detected) |
+| `occupancy`            		 | {}							| null		| optional, activate an occupancy sensor with a timeout after motion detection |
+| `occupancy.name`           | String					| N/A			| mandatory, occupancy sensor name |
+| `occupancy.timeout`        | Integer (sec)	| 60			| optional, ocupancy timeout in sec after motion detection |
 
 
 ## Window/WindowCovering
@@ -148,7 +159,8 @@ When operating, the GPIO is turned on for 200ms to simulate a button pression on
 
 ###### Configuration
 
-| Parameter                  | Note 																							|
-|----------------------------|----------------------------------------------------|
-| `pins`               		   | mandatory, output pins numbers to trigger (pins[0] : open, pins[0] : close) |
-| `shiftDuration`            | optional, duration of a shift (close->open or open->close) used to compute intermediate position, default: 20 seconds |
+| Parameter                  | Type						| Default | Note 																							|
+|----------------------------|----------------|---------|---------------------------------------------------|
+| `pins`               		   | Integer[2]			| N/A			| mandatory, output pins numbers to trigger (pins[0] : open, pins[0] : close) |
+| `shiftDuration`            | Integer (sec)	| 20			| optional, duration of a shift (close->open or open->close) used to compute intermediate position |
+| `initPosition`						 | Integer (%)		| 0				| optional, default shutter position at homebridge startup to compensate absence of state feedback, recommanded to ensure open/close scenarios after unexptected restart: 99% |
