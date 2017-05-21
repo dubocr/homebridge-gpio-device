@@ -215,11 +215,17 @@ RollerShutter.prototype = {
  		var that = this;
 		var currentPos = this.posCharac.value;
 		
+		// Nothing to do
+		if(value == currentPos) {
+			callback();
+			return;
+		}
+		
 		if(this.shift.id) {
 			// Operation already in progress. Cancel timer and update computed current position
 			clearTimeout(this.shift.id);
 			this.shift.id = null;
-			var moved = (Date.now() - this.shift.start) / this.shiftDuration;
+			var moved = Math.round((Date.now() - this.shift.start) / this.shiftDuration);
 			currentPos += Math.sign(this.shift.value) * moved;
 			this.posCharac.updateValue(this.minMax(currentPos));
 		}
