@@ -46,6 +46,9 @@ function DeviceAccesory(log, config) {
 		case 'WindowCovering':
 			this.device = new RollerShutter(this, log, config);
 		break;
+		case 'LockMechanism':
+			this.device = new LockMechanism(this, log, config);
+		break;
 		default:
 			throw new Error("Unknown 'type' parameter : " + config.type);
 		break;
@@ -121,6 +124,58 @@ DigitalOutput.prototype = {
  		if(this.inverted)
  			state = !state;
  		callback(null, state ? 1 : 0);
+	}
+}
+
+function LockMechanism(accesory, log, config) {
+	this.log = log;
+	this.pin = config.pin;
+	this.inverted = config.inverted || false;
+	this.duration = config.duration || false;
+	
+	wpi.pinMode(this.pin, wpi.OUTPUT);
+	wpi.digitalWrite(this.pin, this.inverted ? wpi.HIGH : wpi.LOW);
+ 	
+	this.service = new Service[config.type](config.name);
+	this.target = this.service.getCharacteristic(Characteristic.LockTargetState)
+		.on('set', this.setLockState.bind(this))
+		.updateValue(Characteristic.LockTargetState.SECURED);
+	this.state = this.service.getCharacteristic(Characteristic.LockCurrentState)
+		.on('get', this.getLockState.bind(this))
+		.updateValue(Characteristic.LockCurrentState.SECURED);
+	
+	accesory.addService(this.service);
+}
+
+LockMechanism.prototype = {
+  	setLockState: function(value, callback) {
+  		var that = this;
+ 		var OPEN = this.inverted ? wpi.LOW : wpi.HIGH;
+ 		var CLOSE = this.inverted ? wpi.HIGH : wpi.LOW;
+ 		
+ 		if(value == Characteristic.LockTargetState.UNSECURED) {
+ 			wpi.digitalWrite(this.pin, OPEN);
+ 			this.state.updateValue(Characteristic.LockCurrentState.UNSECURED);
+ 			callback();
+ 			if(this.duration) {
+				setTimeout(function(){
+					wpi.digitalWrite(that.pin, CLOSE);
+					that.target.updateValue(Characteristic.LockTargetState.SECURED);
+					that.state.updateValue(Characteristic.LockCurrentState.SECURED);
+				}, this.duration * 1000);
+ 			}
+ 		} else {
+ 			wpi.digitalWrite(that.pin, CLOSE);
+ 			this.state.updateValue(Characteristic.LockCurrentState.SECURED);
+ 			callback();
+ 		}
+	},
+	
+	getLockState: function(callback) {
+		var state = wpi.digitalRead(this.pin);
+ 		if(this.inverted)
+ 			state = !state;
+ 		callback(null, state ? Characteristic.LockCurrentState.UNSECURED : Characteristic.LockCurrentState.SECURED);
 	}
 }
 

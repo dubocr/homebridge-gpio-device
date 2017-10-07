@@ -71,11 +71,13 @@ Configuration example:
 
 Accessory type could be one of the following:
 * [ContactSensor](#contactsensor)
-* [Switch](#switch/lightbulb)
-* [Lightbulb](#switch/lightbulb)
+* [Switch](#switch/lightbulb/outlet)
+* [Lightbulb](#switch/lightbulb/outlet)
+* [Outlet](#switch/lightbulb/outlet)
 * [MotionSensor](#motionsensor)
 * [Window](#window/windowcovering)
 * [WindowCovering](#window/windowcovering)
+* [LockMechanism](#lockmechanism)
 
 ## Pin Configuration
 
@@ -124,9 +126,9 @@ wPi pin number must be used in config file
 | `inverted`               	 | Boolean				| false		| optional, reverse the behaviour of the GPIO pin (LOW : contact detected, HIGH : contact not detected) |
 
 
-## Switch/Lightbulb
+## Switch/Lightbulb/Outlet
 
-`Switch` or `Lightbulb` operates a GPIO output as ON/OFF.
+`Switch`, `Lightbulb` or `Outlet` operates a GPIO output as ON/OFF.
 
 ###### Configuration
 
@@ -164,3 +166,16 @@ When operating, the GPIO is turned on for 200ms to simulate a button pression on
 | `pins`               		   | Integer[2]			| N/A			| mandatory, output pins numbers to trigger (pins[0] : open, pins[0] : close) |
 | `shiftDuration`            | Integer (sec)	| 20			| optional, duration of a shift (close->open or open->close) used to compute intermediate position |
 | `initPosition`						 | Integer (%)		| 0				| optional, default shutter position at homebridge startup to compensate absence of state feedback, recommanded to ensure open/close scenarios after unexptected restart: 99% |
+
+## LockMechanism
+
+`LockMechanism` operate a GPIO outputs plugged to an electric latch.
+When operating, the latch is unlocked for `duration` seconds (or indefinitely if `duration=0`)
+
+###### Configuration
+
+| Parameter                  | Type						| Default | Note 																							|
+|----------------------------|----------------|---------|---------------------------------------------------|
+| `pin`               		 | Integer		  | N/A		| mandatory, output pin number to trigger (locked : LOW, unlocked : HIGH) |
+| `duration`            	 | Integer (sec)  | 0		| optional, duration before restoring locked state (0 : disabled) |
+| `inverted`				 | Boolean		  | false	| optional, reverse the behaviour of the GPIO pin (locked : HIGH, unlocked : LOW) |
