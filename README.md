@@ -71,12 +71,12 @@ Configuration example:
 
 Accessory type could be one of the following:
 * [ContactSensor](#contactsensor)
-* [Switch](#switch/lightbulb/outlet)
-* [Lightbulb](#switch/lightbulb/outlet)
-* [Outlet](#switch/lightbulb/outlet)
+* [Switch](#switch)
+* [Lightbulb](#switch)
+* [Outlet](#switch)
 * [MotionSensor](#motionsensor)
-* [Window](#window/windowcovering)
-* [WindowCovering](#window/windowcovering)
+* [Window](#window)
+* [WindowCovering](#window)
 * [LockMechanism](#lockmechanism)
 
 ## Pin Configuration
