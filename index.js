@@ -1,6 +1,6 @@
 var Accessory, Service, Characteristic, UUIDGen, Types;
 
-var wpi = require('wiring-pi');
+var wpi = require('wiringpi-node');
 
 module.exports = function(homebridge) {
     console.log("homebridge-gpio-device API version: " + homebridge.version);
@@ -37,6 +37,7 @@ function DeviceAccesory(log, config) {
 		break;
 		case 'Switch':
 		case 'Lightbulb':
+		case 'Outlet':
 			this.device = new DigitalOutput(this, log, config);
 		break;
 		case 'MotionSensor':

@@ -24,13 +24,13 @@ Configuration example:
 
 	"accessories": [
 		{
-			"accesory": "GPIODevice",
+			"accessory": "GPIODevice",
 			"name": "Front Door",
 			"type": "ContactSensor",
 			"pin": 4
 		},
 		{
-			"accesory": "GPIODevice",
+			"accessory": "GPIODevice",
 			"name": "Sofa Light",
 			"type": "Lightbulb",
 			"pin": 5
@@ -46,12 +46,19 @@ Configuration example:
 			}
 		},
 		{
-			"accesory": "GPIODevice",
+			"accessory": "GPIODevice",
 			"name": "Kitchen Roller Shutter",
 			"type": "WindowCovering",
 			"pins": [12,13]
 			"shiftDuration": 23,
 			"initPosition": 99
+		},
+		{
+			"accessory": "GPIODevice",
+			"type": "LockMechanism",
+			"name": "Front Door",
+			"pin": 6,
+			"duration": 5
 		}
 	],
 
@@ -112,7 +119,7 @@ wPi pin number must be used in config file
  +-----+-----+---------+------+---+---Pi 2---+---+------+---------+-----+-----+
 ```
 
-# Type of accesories
+# Type of accessories
 
 ## ContactSensor
 
