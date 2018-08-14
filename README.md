@@ -129,8 +129,9 @@ wPi pin number must be used in config file
 
 | Parameter                  | Type						| Default | Note 																							|
 |----------------------------|----------------|---------|---------------------------------------------------|
-| `pin`               		   | Integer				| N/A			| mandatory, input pin number to monitor (HIGH : contact detected, LOW : contact not detected) |
+| `pin`               		 | Integer				| N/A			| mandatory, input pin number to monitor (HIGH : contact detected, LOW : contact not detected) |
 | `inverted`               	 | Boolean				| false		| optional, reverse the behaviour of the GPIO pin (LOW : contact detected, HIGH : contact not detected) |
+| `postpone`               	 | Integer				| 100		| optional, delay (ms) between 2 state change to avoid bouncing |
 
 
 ## Switch/Lightbulb/Outlet
@@ -141,8 +142,9 @@ wPi pin number must be used in config file
 
 | Parameter                  | Type						| Default | Note 																							|
 |----------------------------|----------------|---------|---------------------------------------------------|
-| `pin`               		   | Integer				| N/A			| mandatory, output pin number to trigger (on : HIGH, off : LOW) |
+| `pin`               		 | Integer				| N/A		| mandatory, output pin number to trigger (on : HIGH, off : LOW) |
 | `inverted`               	 | Boolean				| false		| optional, reverse the behaviour of the GPIO pin (off : HIGH, on : LOW) |
+| `initState`             	 | 0/1					| 0			| optional, default state of the pin at startup (0 : LOW, 1 : HIGH) |
 
 
 ## MotionSensor
@@ -159,6 +161,7 @@ An optional OccupancySensor can be configured with a timeout.
 | `occupancy`            		 | {}							| null		| optional, activate an occupancy sensor with a timeout after motion detection |
 | `occupancy.name`           | String					| N/A			| mandatory, occupancy sensor name |
 | `occupancy.timeout`        | Integer (sec)	| 60			| optional, ocupancy timeout in sec after motion detection |
+| `inverted`               	 | Boolean				| false		| optional, reverse the behaviour of the GPIO pin (HIGH : motion not detected, LOW : motion detected) |
 
 
 ## Window/WindowCovering

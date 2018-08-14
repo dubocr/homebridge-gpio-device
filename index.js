@@ -22,7 +22,7 @@ function DeviceAccesory(log, config) {
 	
 	if(!config.type) throw new Error("'type' parameter is missing");
 	if(!config.name) throw new Error("'name' parameter is missing for accessory " + config.type);
-	if(!config.pin && !config.pins) throw new Error("'pin(s)' parameter is missing for accessory " + config.name);
+	if(!config.hasOwnProperty('pin') && !config.pins) throw new Error("'pin(s)' parameter is missing for accessory " + config.name);
 	
 	var infoService = new Service.AccessoryInformation();
 	infoService.setCharacteristic(Characteristic.Manufacturer, 'Raspberry')
@@ -70,23 +70,49 @@ function DigitalInput(accesory, log, config) {
 	this.log = log;
 	this.pin = config.pin;
 	this.inverted = config.inverted || false;
+	this.toggle = config.toggle || false;
+	this.postpone = config.postpone || 100;
 	
 	this.service = new Service[config.type](config.name);
 	this.service.getCharacteristic(Characteristic.ContactSensorState)
 		.on('get', this.getState.bind(this));
 	
 	wpi.pinMode(this.pin, wpi.INPUT);
-	wpi.wiringPiISR(this.pin, wpi.INT_EDGE_BOTH, this.stateChange.bind(this));
+	if(this.toggle)
+		wpi.wiringPiISR(this.pin, this.inverted ? wpi.INT_EDGE_FALLING : wpi.INT_EDGE_RISING, this.toggleState.bind(this));
+	else
+		wpi.wiringPiISR(this.pin, wpi.INT_EDGE_BOTH, this.stateChange.bind(this));
 		
 	accesory.addService(this.service);
 }
 
 DigitalInput.prototype = { 	
  	stateChange: function(delta) {
- 		var state = wpi.digitalRead(this.pin);
- 		if(this.inverted)
- 			state = !state;
-		this.service.getCharacteristic(Characteristic.ContactSensorState).updateValue(state ? Characteristic.ContactSensorState.CONTACT_DETECTED : Characteristic.ContactSensorState.CONTACT_NOT_DETECTED);
+ 		if(this.postponeId != null) {
+ 			var that = this;
+			this.postponeId = setTimeout(function() {
+				that.postponeId = null;
+				var state = wpi.digitalRead(that.pin);
+				if(that.inverted)
+					state = !state;
+				that.service.getCharacteristic(Characteristic.ContactSensorState).updateValue(state ? Characteristic.ContactSensorState.CONTACT_DETECTED : Characteristic.ContactSensorState.CONTACT_NOT_DETECTED);
+			}, this.postpone);
+ 		}
+ 	},
+ 	
+ 	toggleState: function(delta) {
+ 		if(this.postponeId != null) {
+ 			var that = this;
+			this.postponeId = setTimeout(function() {
+				that.postponeId = null;
+				var state = wpi.digitalRead(that.pin);
+				if(that.inverted)
+					state = !state;
+				if(state) {
+					var charac = that.service.getCharacteristic(Characteristic.ContactSensorState);
+				charac.updateValue(charac.value == Characteristic.ContactSensorState.CONTACT_NOT_DETECTED ? Characteristic.ContactSensorState.CONTACT_DETECTED : Characteristic.ContactSensorState.CONTACT_NOT_DETECTED);
+			}, this.postpone);
+ 		}
  	},
  	
  	getState: function(callback) {
@@ -101,8 +127,11 @@ function DigitalOutput(accesory, log, config) {
 	this.log = log;
 	this.pin = config.pin;
 	this.inverted = config.inverted || false;
+	this.duration = config.duration || false;
+	this.initState = config.initState || 0;
 	
 	wpi.pinMode(this.pin, wpi.OUTPUT);
+	wpi.digitalWrite(this.pin, this.initState ? wpi.HIGH : wpi.LOW);
 	
 	this.service = new Service[config.type](config.name);
 	this.service.getCharacteristic(Characteristic.On)
@@ -114,9 +143,16 @@ function DigitalOutput(accesory, log, config) {
 
 DigitalOutput.prototype = {
   setOn: function(value, callback) {
+  		var that = this;
  		if(this.inverted)
  			value = !value;
  		wpi.digitalWrite(this.pin, value ? wpi.HIGH : wpi.LOW);
+ 		if(this.duration) {
+			setTimeout(function(){
+				wpi.digitalWrite(that.pin, value ? wpi.LOW : wpi.HIGH);
+				that.service.getCharacteristic(Characteristic.On).updateValue(!value);
+			}, this.duration * 1000);
+		}
  		callback();
 	},
 	
@@ -183,6 +219,7 @@ LockMechanism.prototype = {
 function PIRSensor(accesory, log, config) {
 	this.log = log;
 	this.pin = config.pin;
+	this.inverted = config.inverted || false;
 	
 	this.service = new Service[config.type](config.name);
 	this.service.getCharacteristic(Characteristic.MotionDetected)
@@ -201,8 +238,10 @@ function PIRSensor(accesory, log, config) {
 }
 
 PIRSensor.prototype = {
-  stateChange: function(delta) {
+  	stateChange: function(delta) {
  		var state = wpi.digitalRead(this.pin);
+ 		if(this.inverted)
+ 			state = !state;
 		this.service.getCharacteristic(Characteristic.MotionDetected).updateValue(state ? 1 : 0);
 		if(this.occupancy)
 			this.occupancyUpdate(state);
@@ -217,8 +256,8 @@ PIRSensor.prototype = {
  	
  	occupancyUpdate: function(state) {
  		var that = this;
-    var characteristic = this.occupancy.getCharacteristic(Characteristic.OccupancyDetected);
-    if(state) {
+    	var characteristic = this.occupancy.getCharacteristic(Characteristic.OccupancyDetected);
+    	if(state) {
 			characteristic.updateValue(Characteristic.OccupancyDetected.OCCUPANCY_DETECTED);
 			if(this.occupancyTimeoutID != null) {
 				clearTimeout(this.occupancyTimeoutID);
@@ -278,12 +317,18 @@ RollerShutter.prototype = {
 		}
 		
 		if(this.shift.id) {
-			// Operation already in progress. Cancel timer and update computed current position
-			clearTimeout(this.shift.id);
-			this.shift.id = null;
-			var moved = Math.round((Date.now() - this.shift.start) / this.shiftDuration);
-			currentPos += Math.sign(this.shift.value) * moved;
-			this.posCharac.updateValue(this.minMax(currentPos));
+			var diff = Date.now() - this.shift.start;
+			if(diff > 1000) {
+				// Operation already in progress. Cancel timer and update computed current position
+				clearTimeout(this.shift.id);
+				this.shift.id = null;
+				var moved = Math.round(diff / this.shiftDuration);
+				currentPos += Math.sign(this.shift.value) * moved;
+				this.posCharac.updateValue(this.minMax(currentPos));
+			} else {
+				callback();
+				return;
+			}
 		}
 		
 		this.log("Requesting shifting " + currentPos + " -> " + value);
