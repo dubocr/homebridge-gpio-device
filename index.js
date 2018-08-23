@@ -110,7 +110,8 @@ DigitalInput.prototype = {
 					state = !state;
 				if(state) {
 					var charac = that.service.getCharacteristic(Characteristic.ContactSensorState);
-				charac.updateValue(charac.value == Characteristic.ContactSensorState.CONTACT_NOT_DETECTED ? Characteristic.ContactSensorState.CONTACT_DETECTED : Characteristic.ContactSensorState.CONTACT_NOT_DETECTED);
+					charac.updateValue(charac.value == Characteristic.ContactSensorState.CONTACT_NOT_DETECTED ? Characteristic.ContactSensorState.CONTACT_DETECTED : Characteristic.ContactSensorState.CONTACT_NOT_DETECTED);
+				}
 			}, this.postpone);
  		}
  	},
