@@ -283,6 +283,7 @@ function RollerShutter(accesory, log, config) {
 	this.initPosition = config.initPosition || 0;
 	this.openPin = config.pins[0];
 	this.closePin = config.pins[1];
+	this.restoreTarget = config.restoreTarget || false;
 	
 	this.service = new Service[config.type](config.name);
 	this.shiftDuration = (config.shiftDuration || 20) * 10; // Shift duration in ms for a move of 1%
@@ -350,7 +351,8 @@ RollerShutter.prototype = {
 			this.pinPulse(this.shift.value); // Stop shutter by pulsing same pin another time
 		}
 		this.posCharac.updateValue(this.shift.target);
-		this.targetPosCharac.updateValue(this.initPosition);
+		if(this.restoreTarget)
+			this.targetPosCharac.updateValue(this.initPosition);
 		this.log("Shifting ends at "+this.shift.target);
 		this.shift.id = null;
 		this.shift.start = 0;
