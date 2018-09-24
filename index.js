@@ -295,7 +295,7 @@ function RollerShutter(accesory, log, config) {
 	
 	this.posCharac = this.service.getCharacteristic(Characteristic.CurrentPosition)
 		.updateValue(this.initPosition);
-	this.service.getCharacteristic(Characteristic.TargetPosition)
+	this.targetPosCharac = this.service.getCharacteristic(Characteristic.TargetPosition)
 		.on('set', this.setPosition.bind(this))
 		.updateValue(this.initPosition);
 		
@@ -350,6 +350,7 @@ RollerShutter.prototype = {
 			this.pinPulse(this.shift.value); // Stop shutter by pulsing same pin another time
 		}
 		this.posCharac.updateValue(this.shift.target);
+		this.targetPosCharac.updateValue(this.initPosition);
 		this.log("Shifting ends at "+this.shift.target);
 		this.shift.id = null;
 		this.shift.start = 0;
