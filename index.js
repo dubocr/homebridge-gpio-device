@@ -350,9 +350,13 @@ RollerShutter.prototype = {
 		if(this.shift.target < 100 && this.shift.target > 0) {
 			this.pinPulse(this.shift.value); // Stop shutter by pulsing same pin another time
 		}
-		this.posCharac.updateValue(this.shift.target);
-		if(this.restoreTarget)
+		
+		if(this.restoreTarget) {
+			this.posCharac.updateValue(this.initPosition);
 			this.targetPosCharac.updateValue(this.initPosition);
+		} else {
+			this.posCharac.updateValue(this.shift.target);
+		}
 		this.log("Shifting ends at "+this.shift.target);
 		this.shift.id = null;
 		this.shift.start = 0;
