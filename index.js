@@ -43,9 +43,9 @@ function DeviceAccesory(log, config) {
 		case 'MotionSensor':
 			this.device = new PIRSensor(this, log, config);
 		break;
-		case 'Window':
-		case 'WindowCovering':
-			this.device = new RollerShutter(this, log, config);
+		case 'Garage':
+		case 'GarageDoorOpener':
+			this.device = new GarageDoorOpener(this, log, config);
 		break;
 		case 'LockMechanism':
 			this.device = new LockMechanism(this, log, config);
@@ -275,7 +275,7 @@ PIRSensor.prototype = {
   }
 }
 
-function RollerShutter(accesory, log, config) {
+function GarageDoorOpener(accesory, log, config) {
 	if(config.pins.length != 2) throw new Error("'pins' parameter must contains 2 pin numbers");
 
 	this.log = log;
@@ -291,8 +291,8 @@ function RollerShutter(accesory, log, config) {
 	
 	wpi.pinMode(this.openPin, wpi.OUTPUT);
 	wpi.pinMode(this.closePin, wpi.OUTPUT);
-	wpi.digitalWrite(this.openPin, wpi.LOW);
-	wpi.digitalWrite(this.closePin, wpi.LOW);
+	wpi.digitalWrite(this.openPin, wpi.HIGH);
+	wpi.digitalWrite(this.closePin, wpi.HIGH);
 	
 	this.posCharac = this.service.getCharacteristic(Characteristic.CurrentPosition)
 		.updateValue(this.initPosition);
@@ -368,8 +368,8 @@ RollerShutter.prototype = {
 		var pin = shiftValue > 0 ? this.openPin : this.closePin;
 		this.log('Pulse pin ' + pin);
 		this.shift.start = Date.now();
-		wpi.digitalWrite(pin, wpi.HIGH);
-		wpi.delay(200);
 		wpi.digitalWrite(pin, wpi.LOW);
+		wpi.delay(200);
+		wpi.digitalWrite(pin, wpi.HIGH);
 	}
 }
