@@ -47,6 +47,9 @@ function DeviceAccesory(log, config) {
 		case 'WindowCovering':
 			this.device = new RollerShutter(this, log, config);
 		break;
+		case 'GarageDoorOpener':
+			this.device = new GarageDoor(this, log, config);
+		break;
 		case 'LockMechanism':
 			this.device = new LockMechanism(this, log, config);
 		break;
@@ -88,7 +91,7 @@ function DigitalInput(accesory, log, config) {
 
 DigitalInput.prototype = { 	
  	stateChange: function(delta) {
- 		if(this.postponeId != null) {
+ 		if(this.postponeId == null) {
  			var that = this;
 			this.postponeId = setTimeout(function() {
 				that.postponeId = null;
@@ -101,7 +104,7 @@ DigitalInput.prototype = {
  	},
  	
  	toggleState: function(delta) {
- 		if(this.postponeId != null) {
+ 		if(this.postponeId == null) {
  			var that = this;
 			this.postponeId = setTimeout(function() {
 				that.postponeId = null;
@@ -280,10 +283,14 @@ function RollerShutter(accesory, log, config) {
 
 	this.log = log;
 	
+	this.inverted = config.inverted || false;
 	this.initPosition = config.initPosition || 0;
 	this.openPin = config.pins[0];
 	this.closePin = config.pins[1];
 	this.restoreTarget = config.restoreTarget || false;
+	
+	this.HIGH = this.inverted ? wpi.LOW : wpi.HIGH;
+ 	this.LOW = this.inverted ? wpi.HIGH : wpi.LOW;
 	
 	this.service = new Service[config.type](config.name);
 	this.shiftDuration = (config.shiftDuration || 20) * 10; // Shift duration in ms for a move of 1%
@@ -291,8 +298,8 @@ function RollerShutter(accesory, log, config) {
 	
 	wpi.pinMode(this.openPin, wpi.OUTPUT);
 	wpi.pinMode(this.closePin, wpi.OUTPUT);
-	wpi.digitalWrite(this.openPin, wpi.LOW);
-	wpi.digitalWrite(this.closePin, wpi.LOW);
+	wpi.digitalWrite(this.openPin, this.LOW);
+	wpi.digitalWrite(this.closePin, this.LOW);
 	
 	this.posCharac = this.service.getCharacteristic(Characteristic.CurrentPosition)
 		.updateValue(this.initPosition);
@@ -368,8 +375,85 @@ RollerShutter.prototype = {
 		var pin = shiftValue > 0 ? this.openPin : this.closePin;
 		this.log('Pulse pin ' + pin);
 		this.shift.start = Date.now();
-		wpi.digitalWrite(pin, wpi.HIGH);
+		wpi.digitalWrite(pin, this.HIGH);
 		wpi.delay(200);
-		wpi.digitalWrite(pin, wpi.LOW);
+		wpi.digitalWrite(pin, this.LOW);
 	}
+}
+
+function GarageDoor(accesory, log, config) {
+	
+	this.log = log;
+	
+	this.inverted = config.inverted || false;
+	
+	this.HIGH = this.inverted ? wpi.LOW : wpi.HIGH;
+ 	this.LOW = this.inverted ? wpi.HIGH : wpi.LOW;
+ 	
+	this.service = new Service[config.type](config.name);
+	
+	if(config.pin === undefined) {
+		if(config.pins.length != 2) throw new Error("'pins' parameter must contains 2 pin numbers");
+		this.openPin = config.pins[0];
+		this.closePin = config.pins[1];
+		
+		wpi.pinMode(this.openPin, wpi.OUTPUT);
+		wpi.pinMode(this.closePin, wpi.OUTPUT);
+		wpi.digitalWrite(this.openPin, this.LOW);
+		wpi.digitalWrite(this.closePin, this.LOW);
+	} else {
+		this.togglePin = config.pin;
+	
+		wpi.pinMode(this.togglePin, wpi.OUTPUT);
+		wpi.digitalWrite(this.togglePin, this.LOW);
+	}
+	
+	
+	
+	this.stateCharac = this.service.getCharacteristic(Characteristic.CurrentDoorState);
+	this.targetCharac = this.service.getCharacteristic(Characteristic.TargetDoorState);
+	
+	if(config.sensorPin !== undefined) {
+		this.sensorPin = config.sensorPin;
+		wpi.pinMode(this.sensorPin, wpi.INPUT);
+		wpi.wiringPiISR(this.sensorPin, wpi.INT_EDGE_BOTH, this.stateChange.bind(this));
+		
+		this.stateChange();
+	}
+	
+	if(this.togglePin === undefined) {
+		this.targetCharac.on('set', this.setState.bind(this));
+	} else {
+		this.targetCharac.on('set', this.toogleState.bind(this));
+	}
+		
+	accesory.addService(this.service);
+}
+
+GarageDoor.prototype = {
+ 	setState: function(value, callback) {
+ 		var that = this;
+		var pin = (value == Characteristic.TargetDoorState.OPEN) ? this.openPin : this.closePin;
+		
+		wpi.digitalWrite(pin, this.HIGH);
+		wpi.delay(200);
+		wpi.digitalWrite(pin, this.LOW);
+		callback();
+	},
+	
+	toogleState: function(value, callback) {
+ 		var that = this;
+		var pin = this.togglePin;
+		
+		wpi.digitalWrite(pin, this.HIGH);
+		wpi.delay(200);
+		wpi.digitalWrite(pin, this.LOW);
+		callback();
+	},
+	
+	stateChange: function(delta) {
+ 		var state = wpi.digitalRead(this.sensorPin);
+		this.targetCharac.updateValue(state ? Characteristic.TargetDoorState.OPEN : Characteristic.TargetDoorState.CLOSED);
+		this.stateCharac.updateValue(state ? Characteristic.CurrentDoorState.OPEN : Characteristic.CurrentDoorState.CLOSED);
+ 	},
 }

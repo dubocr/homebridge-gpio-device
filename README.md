@@ -84,6 +84,7 @@ Accessory type could be one of the following:
 * [MotionSensor](#motionsensor)
 * [Window](#windowwindowcovering)
 * [WindowCovering](#windowwindowcovering)
+* [GarageDoorOpener](#garagedooropener)
 * [LockMechanism](#lockmechanism)
 
 ## Pin Configuration
@@ -173,9 +174,24 @@ When operating, the GPIO is turned on for 200ms to simulate a button pression on
 
 | Parameter                  | Type						| Default | Note 																							|
 |----------------------------|----------------|---------|---------------------------------------------------|
-| `pins`               		   | Integer[2]			| N/A			| mandatory, output pins numbers to trigger (pins[0] : open, pins[0] : close) |
+| `pins`               		   | Integer[2]			| N/A			| mandatory, output pins numbers to trigger (pins[0] : open, pins[1] : close) |
 | `shiftDuration`            | Integer (sec)	| 20			| optional, duration of a shift (close->open or open->close) used to compute intermediate position |
 | `initPosition`						 | Integer (%)		| 0				| optional, default shutter position at homebridge startup to compensate absence of state feedback, recommanded to ensure open/close scenarios after unexptected restart: 99% |
+| `inverted`               	 | Boolean				| false		| optional, reverse the behaviour of the GPIO pin (pulse becomes HIGH->LOW->HIGH) |
+
+## GarageDoorOpener
+
+`GarageDoorOpener` controls 1 or 2 GPIO output(s) plugged to a garage door engine.
+When operating, the GPIO is turned on for 200ms.
+
+###### Configuration
+
+| Parameter                  | Type						| Default | Note 																							|
+|----------------------------|----------------|---------|---------------------------------------------------|
+| `pin`               		   | Integer			| N/A			| optional, output pin number for toggle opener (first pulse: open, second pulse: close) |
+| `pins`               		   | Integer[2]			| N/A			| optional, output pins numbers for open/close opener (pins[0] : open, pins[1] : close) |
+| `sensorPin`                  | Integer			| N/A			| optional, input pin numbers for open/close sensor (LOW: closed, HIGH: open) |
+| `inverted`               	 | Boolean				| false		| optional, reverse the behaviour of the GPIO pin (pulse becomes HIGH->LOW->HIGH) |
 
 ## LockMechanism
 
