@@ -82,6 +82,7 @@ Accessory type could be one of the following:
 * [Lightbulb](#switchlightbulboutlet)
 * [Outlet](#switchlightbulboutlet)
 * [MotionSensor](#motionsensor)
+* [SmokeSensor](#smokesensor)
 * [Window](#windowwindowcovering)
 * [WindowCovering](#windowwindowcovering)
 * [LockMechanism](#lockmechanism)
@@ -162,6 +163,18 @@ An optional OccupancySensor can be configured with a timeout.
 | `occupancy.name`           | String					| N/A			| mandatory, occupancy sensor name |
 | `occupancy.timeout`        | Integer (sec)	| 60			| optional, ocupancy timeout in sec after motion detection |
 | `inverted`               	 | Boolean				| false		| optional, reverse the behaviour of the GPIO pin (HIGH : motion not detected, LOW : motion detected) |
+
+## SmokeSensor
+
+`SmokeSensor` monitor a GPIO input and reports it as HomeKit SmokeSensor.
+
+###### Configuration
+
+| Parameter                  | Type						| Default | Note 																							|
+|----------------------------|----------------|---------|---------------------------------------------------|
+| `pin`               		 | Integer				| N/A			| mandatory, input pin number to monitor (HIGH : smoke detected, LOW : smoke not detected) |
+| `inverted`               	 | Boolean				| false		| optional, reverse the behaviour of the GPIO pin (LOW : smoke detected, HIGH : smoke not detected) |
+| `postpone`               	 | Integer				| 100		| optional, delay (ms) between 2 state change to avoid bouncing |
 
 
 ## Window/WindowCovering
