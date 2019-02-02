@@ -247,7 +247,6 @@ function PIRSensor(accesory, log, config) {
 PIRSensor.prototype = {
   	stateChange: function(delta) {
  		var state = wpi.digitalRead(this.pin);
-		this
  		if(this.inverted)
  			state = !state;
 		this.service.getCharacteristic(Characteristic.MotionDetected).updateValue(state ? 1 : 0);
