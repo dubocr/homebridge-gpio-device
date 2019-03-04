@@ -40,15 +40,15 @@ function DeviceAccesory(log, config) {
 		case 'Outlet':
 			this.device = new DigitalOutput(this, log, config);
 		break;
-		case 'SmokeSensor':
-			this.device = new SmokeSensor(this, log, config);
-		break;
 		case 'MotionSensor':
 			this.device = new PIRSensor(this, log, config);
 		break;
 		case 'Window':
 		case 'WindowCovering':
 			this.device = new RollerShutter(this, log, config);
+		break;
+		case 'GarageDoorOpener':
+			this.device = new GarageDoor(this, log, config);
 		break;
 		case 'LockMechanism':
 			this.device = new LockMechanism(this, log, config);
@@ -91,7 +91,7 @@ function DigitalInput(accesory, log, config) {
 
 DigitalInput.prototype = { 	
  	stateChange: function(delta) {
- 		if(this.postponeId != null) {
+ 		if(this.postponeId == null) {
  			var that = this;
 			this.postponeId = setTimeout(function() {
 				that.postponeId = null;
@@ -104,7 +104,7 @@ DigitalInput.prototype = {
  	},
  	
  	toggleState: function(delta) {
- 		if(this.postponeId != null) {
+ 		if(this.postponeId == null) {
  			var that = this;
 			this.postponeId = setTimeout(function() {
 				that.postponeId = null;
@@ -165,64 +165,6 @@ DigitalOutput.prototype = {
  		if(this.inverted)
  			state = !state;
  		callback(null, state ? 1 : 0);
-	}
-}
-
-function SmokeSensor(accesory, log, config) {
-	this.log = log;
-	this.pin = config.pin;
-	this.inverted = config.inverted || false;
-	this.toggle = config.toggle || false;
-	this.postpone = config.postpone || 100;
-	
-	this.service = new Service[config.type](config.name);
-	this.service.getCharacteristic(Characteristic.SmokeDetected)
-		.on('get', this.getState.bind(this));
-	
-	wpi.pinMode(this.pin, wpi.INPUT);
-	if(this.toggle)
-		wpi.wiringPiISR(this.pin, this.inverted ? wpi.INT_EDGE_FALLING : wpi.INT_EDGE_RISING, this.toggleState.bind(this));
-	else
-		wpi.wiringPiISR(this.pin, wpi.INT_EDGE_BOTH, this.stateChange.bind(this));
-		
-	accesory.addService(this.service);
-}
-
-SmokeSensor.prototype = { 	
- 	stateChange: function(delta) {
- 		if(this.postponeId != null) {
- 			var that = this;
-			this.postponeId = setTimeout(function() {
-				that.postponeId = null;
-				var state = wpi.digitalRead(that.pin);
-				if(that.inverted)
-					state = !state;
-				that.service.getCharacteristic(Characteristic.SmokeDetected).updateValue(state ? Characteristic.SmokeDetected.SMOKE_DETECTED : Characteristic.SmokeDetected.SMOKE_NOT_DETECTED);
-			}, this.postpone);
- 		}
- 	},
- 	
- 	toggleState: function(delta) {
- 		if(this.postponeId != null) {
- 			var that = this;
-			this.postponeId = setTimeout(function() {
-				that.postponeId = null;
-				var state = wpi.digitalRead(that.pin);
-				if(that.inverted)
-					state = !state;
-				if(state) {
-					var charac = that.service.getCharacteristic(Characteristic.SmokeDetected);
-					charac.updateValue(charac.value == Characteristic.SmokeDetected.SMOKE_NOT_DETECTED ? Characteristic.SmokeDetected.SMOKE_DETECTED : Characteristic.SmokeDetected.SMOKE_NOT_DETECTED);
-				}
-			}, this.postpone);
- 		}
- 	},
- 	
- 	getState: function(callback) {
- 		var state = wpi.digitalRead(this.pin);
- 		if(this.inverted)
- 			state = !state;
- 		callback(null, state ? Characteristic.SmokeDetected.SMOKE_DETECTED : Characteristic.SmokeDetected.SMOKE_NOT_DETECTED);
 	}
 }
 
@@ -341,10 +283,14 @@ function RollerShutter(accesory, log, config) {
 
 	this.log = log;
 	
+	this.inverted = config.inverted || false;
 	this.initPosition = config.initPosition || 0;
 	this.openPin = config.pins[0];
 	this.closePin = config.pins[1];
 	this.restoreTarget = config.restoreTarget || false;
+	
+	this.HIGH = this.inverted ? wpi.LOW : wpi.HIGH;
+ 	this.LOW = this.inverted ? wpi.HIGH : wpi.LOW;
 	
 	this.service = new Service[config.type](config.name);
 	this.shiftDuration = (config.shiftDuration || 20) * 10; // Shift duration in ms for a move of 1%
@@ -352,8 +298,8 @@ function RollerShutter(accesory, log, config) {
 	
 	wpi.pinMode(this.openPin, wpi.OUTPUT);
 	wpi.pinMode(this.closePin, wpi.OUTPUT);
-	wpi.digitalWrite(this.openPin, wpi.LOW);
-	wpi.digitalWrite(this.closePin, wpi.LOW);
+	wpi.digitalWrite(this.openPin, this.LOW);
+	wpi.digitalWrite(this.closePin, this.LOW);
 	
 	this.posCharac = this.service.getCharacteristic(Characteristic.CurrentPosition)
 		.updateValue(this.initPosition);
@@ -429,8 +375,107 @@ RollerShutter.prototype = {
 		var pin = shiftValue > 0 ? this.openPin : this.closePin;
 		this.log('Pulse pin ' + pin);
 		this.shift.start = Date.now();
-		wpi.digitalWrite(pin, wpi.HIGH);
+		wpi.digitalWrite(pin, this.HIGH);
 		wpi.delay(200);
-		wpi.digitalWrite(pin, wpi.LOW);
+		wpi.digitalWrite(pin, this.LOW);
 	}
+}
+
+function GarageDoor(accesory, log, config) {
+	
+	this.log = log;
+	
+	this.inverted = config.inverted || false;
+	
+	this.HIGH = this.inverted ? wpi.LOW : wpi.HIGH;
+ 	this.LOW = this.inverted ? wpi.HIGH : wpi.LOW;
+ 	
+	this.service = new Service[config.type](config.name);
+	
+	if(config.pin === undefined) {
+		if(config.pins.length != 2) throw new Error("'pins' parameter must contains 2 pin numbers");
+		this.openPin = config.pins[0];
+		this.closePin = config.pins[1];
+		
+		wpi.pinMode(this.openPin, wpi.OUTPUT);
+		wpi.pinMode(this.closePin, wpi.OUTPUT);
+		wpi.digitalWrite(this.openPin, this.LOW);
+		wpi.digitalWrite(this.closePin, this.LOW);
+	} else {
+		this.togglePin = config.pin;
+	
+		wpi.pinMode(this.togglePin, wpi.OUTPUT);
+		wpi.digitalWrite(this.togglePin, this.LOW);
+	}
+	
+	
+	
+	this.stateCharac = this.service.getCharacteristic(Characteristic.CurrentDoorState);
+	this.targetCharac = this.service.getCharacteristic(Characteristic.TargetDoorState);
+	
+	if(config.sensorPin !== undefined) {
+		this.sensorPin = config.sensorPin;
+		wpi.pinMode(this.sensorPin, wpi.INPUT);
+		wpi.wiringPiISR(this.sensorPin, wpi.INT_EDGE_BOTH, this.stateChange.bind(this));
+		
+		this.stateChange();
+	} else {
+		this.sensorPin = null;
+		this.stateCharac.updateValue(Characteristic.CurrentDoorState.CLOSED);
+	}
+	
+	if(this.togglePin === undefined) {
+		this.targetCharac.on('set', this.setState.bind(this));
+	} else {
+		this.targetCharac.on('set', this.toogleState.bind(this));
+	}
+		
+	accesory.addService(this.service);
+}
+
+GarageDoor.prototype = {
+ 	setState: function(value, callback) {
+ 		var that = this;
+		
+		if(value == this.stateCharac.value) {
+			callback();
+			return;
+		}
+		
+		var pin = (value == Characteristic.TargetDoorState.OPEN) ? this.openPin : this.closePin;
+		
+		wpi.digitalWrite(pin, this.HIGH);
+		wpi.delay(200);
+		wpi.digitalWrite(pin, this.LOW);
+		callback();
+		
+		if(this.sensorPin == null) {
+			this.stateCharac.updateValue(value == Characteristic.TargetDoorState.OPEN ? Characteristic.CurrentDoorState.OPEN : Characteristic.CurrentDoorState.CLOSED);
+		}
+	},
+	
+	toogleState: function(value, callback) {
+ 		var that = this;
+		
+		if(value == this.stateCharac.value) {
+			callback();
+			return;
+		}
+		var pin = this.togglePin;
+		
+		wpi.digitalWrite(pin, this.HIGH);
+		wpi.delay(200);
+		wpi.digitalWrite(pin, this.LOW);
+		callback();
+		
+		if(this.sensorPin == null) {
+			this.stateCharac.updateValue(value == Characteristic.TargetDoorState.OPEN ? Characteristic.CurrentDoorState.OPEN : Characteristic.CurrentDoorState.CLOSED);
+		}
+	},
+	
+	stateChange: function(delta) {
+ 		var state = wpi.digitalRead(this.sensorPin);
+		this.targetCharac.updateValue(state ? Characteristic.TargetDoorState.OPEN : Characteristic.TargetDoorState.CLOSED);
+		this.stateCharac.updateValue(state ? Characteristic.CurrentDoorState.OPEN : Characteristic.CurrentDoorState.CLOSED);
+ 	},
 }
