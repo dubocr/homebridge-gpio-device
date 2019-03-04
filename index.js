@@ -154,7 +154,7 @@ DigitalOutput.prototype = {
  		if(this.duration) {
 			setTimeout(function(){
 				wpi.digitalWrite(that.pin, value ? wpi.LOW : wpi.HIGH);
-				that.service.getCharacteristic(Characteristic.On).updateValue(!value);
+				that.service.getCharacteristic(Characteristic.On).updateValue(that.inverted ? value : !value);
 			}, this.duration * 1000);
 		}
  		callback();
