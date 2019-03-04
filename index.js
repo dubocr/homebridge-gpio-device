@@ -436,7 +436,7 @@ function GarageDoor(accesory, log, config) {
 GarageDoor.prototype = {
  	setState: function(value, callback) {
  		var that = this;
-		
+
 		if(value == this.stateCharac.value) {
 			callback();
 			return;
@@ -448,7 +448,7 @@ GarageDoor.prototype = {
 		wpi.delay(200);
 		wpi.digitalWrite(pin, this.LOW);
 		callback();
-		
+
 		if(this.sensorPin == null) {
 			this.stateCharac.updateValue(value == Characteristic.TargetDoorState.OPEN ? Characteristic.CurrentDoorState.OPEN : Characteristic.CurrentDoorState.CLOSED);
 		}
@@ -456,18 +456,19 @@ GarageDoor.prototype = {
 	
 	toogleState: function(value, callback) {
  		var that = this;
-		
+
 		if(value == this.stateCharac.value) {
 			callback();
 			return;
 		}
+		
 		var pin = this.togglePin;
 		
 		wpi.digitalWrite(pin, this.HIGH);
 		wpi.delay(200);
 		wpi.digitalWrite(pin, this.LOW);
 		callback();
-		
+
 		if(this.sensorPin == null) {
 			this.stateCharac.updateValue(value == Characteristic.TargetDoorState.OPEN ? Characteristic.CurrentDoorState.OPEN : Characteristic.CurrentDoorState.CLOSED);
 		}
