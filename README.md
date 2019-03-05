@@ -146,7 +146,7 @@ wPi pin number must be used in config file
 |----------------------------|----------------|---------|---------------------------------------------------|
 | `pin`               		 | Integer				| N/A		| mandatory, output pin number to trigger (on : HIGH, off : LOW) |
 | `inverted`               	 | Boolean				| false		| optional, reverse the behaviour of the GPIO pin (off : HIGH, on : LOW) |
-| `initState`             	 | 0/1					| 0			| optional, default state of the pin at startup (0 : LOW, 1 : HIGH) |
+| `initState`             	 | 0/1					| 0			| optional, default state of the switch at startup (0 : off, 1 : on) |
 | `duration`             	 | Integer				| 0			| optional, duration before restoring output state (0 : disabled) |
 
 

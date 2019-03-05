@@ -134,6 +134,10 @@ function DigitalOutput(accesory, log, config) {
 	this.duration = config.duration || false;
 	this.initState = config.initState || 0;
 	
+	if(this.inverted) {
+		this.initState = !this.initState;
+	}
+	
 	wpi.pinMode(this.pin, wpi.OUTPUT);
 	wpi.digitalWrite(this.pin, this.initState ? wpi.HIGH : wpi.LOW);
 	
