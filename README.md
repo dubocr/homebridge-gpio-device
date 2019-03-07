@@ -148,7 +148,7 @@ wPi pin number must be used in config file
 | `inverted`               	 | Boolean				| false		| optional, reverse the behaviour of the GPIO pin (off : HIGH, on : LOW) |
 | `initState`             	 | 0/1					| 0			| optional, default state of the switch at startup (0 : off, 1 : on) |
 | `duration`             	 | Integer				| 0			| optional, duration before restoring output state (0 : disabled) |
-
+| `inputPin`               	 | Integer				| N/A		| optional, input pin number used as go and come. Same state will be reported to the output |
 
 ## MotionSensor
 
