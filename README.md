@@ -207,6 +207,7 @@ When operating, the GPIO is turned on for 200ms.
 | `pins`               		   | Integer[2]			| N/A			| optional, output pins numbers for open/close opener (pins[0] : open, pins[1] : close) |
 | `sensorPin`                  | Integer			| N/A			| optional, input pin numbers for open/close sensor (LOW: closed, HIGH: open) |
 | `inverted`               	 | Boolean				| false		| optional, reverse the behaviour of the GPIO pin (pulse becomes HIGH->LOW->HIGH) |
+| `pulseDuration`          	 | Integer				| 200		| optional, duration of the pin pulse. |
 
 ## LockMechanism
 

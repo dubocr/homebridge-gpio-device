@@ -478,6 +478,7 @@ function GarageDoor(accesory, log, config) {
 	this.log = log;
 	
 	this.inverted = config.inverted || false;
+	this.pulseDuration = config.pulseDuration != null ? config.pulseDuration : 200;
 	
 	this.HIGH = this.inverted ? wpi.LOW : wpi.HIGH;
  	this.LOW = this.inverted ? wpi.HIGH : wpi.LOW;
@@ -537,7 +538,7 @@ GarageDoor.prototype = {
 		var pin = (value == Characteristic.TargetDoorState.OPEN) ? this.openPin : this.closePin;
 		
 		wpi.digitalWrite(pin, this.HIGH);
-		wpi.delay(200);
+		wpi.delay(this.pulseDuration);
 		wpi.digitalWrite(pin, this.LOW);
 		callback();
 
@@ -557,7 +558,7 @@ GarageDoor.prototype = {
 		var pin = this.togglePin;
 		
 		wpi.digitalWrite(pin, this.HIGH);
-		wpi.delay(200);
+		wpi.delay(this.pulseDuration);
 		wpi.digitalWrite(pin, this.LOW);
 		callback();
 
