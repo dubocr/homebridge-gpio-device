@@ -367,6 +367,7 @@ function RollerShutter(accesory, log, config) {
 	this.openPin = config.pins[0];
 	this.closePin = config.pins[1];
 	this.restoreTarget = config.restoreTarget || false;
+	this.pulseDuration = config.pulseDuration != null ? config.pulseDuration : 200;
 	
 	this.HIGH = this.inverted ? wpi.LOW : wpi.HIGH;
  	this.LOW = this.inverted ? wpi.HIGH : wpi.LOW;
@@ -390,7 +391,7 @@ function RollerShutter(accesory, log, config) {
 }
 
 RollerShutter.prototype = {
-  minMax: function(value) {
+  	minMax: function(value) {
  		return Math.max(Math.min(value, 0), 100);
  	},
  	
@@ -423,7 +424,7 @@ RollerShutter.prototype = {
 		
 		var newShiftValue = value - currentPos;
 		if(Math.sign(newShiftValue) != Math.sign(this.shift.value)) { // Change shifting direction
-			this.pinPulse(newShiftValue);
+			this.pinPulse(newShiftValue, true);
 		}
 		this.shift.value = newShiftValue;
 		this.shift.target = value;
@@ -434,7 +435,7 @@ RollerShutter.prototype = {
 	
 	motionEnd: function() {
 		if(this.shift.target < 100 && this.shift.target > 0) {
-			this.pinPulse(this.shift.value); // Stop shutter by pulsing same pin another time
+			this.pinPulse(this.shift.value, false); // Stop shutter by pulsing same pin another time
 		}
 		
 		if(this.restoreTarget) {
@@ -450,13 +451,25 @@ RollerShutter.prototype = {
 		this.shift.target = 0;
 	},
 	
-	pinPulse: function(shiftValue) {
+	pinPulse: function(shiftValue, start) {
 		var pin = shiftValue > 0 ? this.openPin : this.closePin;
-		this.log('Pulse pin ' + pin);
+		var oppositePin = shiftValue > 0 ? this.closePin : this.openPin;
 		this.shift.start = Date.now();
-		wpi.digitalWrite(pin, this.HIGH);
-		wpi.delay(200);
-		wpi.digitalWrite(pin, this.LOW);
+		if(this.pulseDuration) {
+			this.log('Pulse pin ' + pin);
+			wpi.digitalWrite(pin, this.HIGH);
+			wpi.delay(this.pulseDuration);
+			wpi.digitalWrite(pin, this.LOW);
+		} else {
+			if(start) {
+				this.log('Start ' + pin + ' / Stop ' + oppositePin);
+				wpi.digitalWrite(oppositePin, this.LOW);
+				wpi.digitalWrite(pin, this.HIGH);
+			} else {
+				this.log('Stop ' + pin);
+				wpi.digitalWrite(pin, this.LOW);
+			}
+		}
 	}
 }
 

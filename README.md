@@ -192,6 +192,7 @@ When operating, the GPIO is turned on for 200ms to simulate a button pression on
 | `shiftDuration`            | Integer (sec)	| 20			| optional, duration of a shift (close->open or open->close) used to compute intermediate position |
 | `initPosition`						 | Integer (%)		| 0				| optional, default shutter position at homebridge startup to compensate absence of state feedback, recommanded to ensure open/close scenarios after unexptected restart: 99% |
 | `inverted`               	 | Boolean				| false		| optional, reverse the behaviour of the GPIO pin (pulse becomes HIGH->LOW->HIGH) |
+| `pulseDuration`          	 | Integer				| 200		| optional, duration of the pin pulse. (0: deactivate, pin active during all shifting) |
 
 ## GarageDoorOpener
 
