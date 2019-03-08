@@ -1,6 +1,6 @@
 {
   "name": "homebridge-gpio-device",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Homebridge plugin exposing devices plugged on GPIO",
   "main": "index.js",
   "keywords": [
@@ -22,6 +22,6 @@
   "author": "Romain DUBOC",
   "license": "ISC",
   "dependencies": {
-    "wiringpi-node": "^2.4.4"
+    "wiring-pi": "^2.2.1"
   }
 }

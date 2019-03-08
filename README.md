@@ -84,8 +84,6 @@ Accessory type could be one of the following:
 * [Switch](#digitaloutput)
 * [Lightbulb](#digitaloutput)
 * [Outlet](#digitaloutput)
-* [Faucet](#digitaloutput)
-* [IrrigationSystem](#digitaloutput)
 * [Valve](#digitaloutput)
 * [MotionSensor](#motionsensor)
 * [Window](#windowwindowcovering)
@@ -143,7 +141,7 @@ wPi pin number must be used in config file
 
 ## DigitalOutput
 
-`Switch`, `Lightbulb`, `Outlet`, `Faucet`, `IrrigationSystem` and `Valve` operates a GPIO output as ON/OFF.
+`Switch`, `Lightbulb`, `Outlet`, and `Valve` operates a GPIO output as ON/OFF.
 
 ###### Configuration
 
@@ -206,7 +204,8 @@ When operating, the GPIO is turned on for 200ms.
 | `pins`               		 | Integer[2]		| N/A		| optional, output pins numbers for open/close opener (pins[0] : open, pins[1] : close)																					|
 | `sensorPin`                | Integer			| N/A		| optional, input pin numbers for open/close sensor (LOW: closed, HIGH: open)																							|
 | `inverted`               	 | Boolean			| false		| optional, reverse the behaviour of the GPIO pin (pulse becomes HIGH->LOW->HIGH)																						|
-| `pulseDuration`          	 | Integer			| 200		| optional, duration of the pin pulse. |
+| `pulseDuration`          	 | Integer			| 200		| optional, duration of the pin pulse.																																	|
+| `cycleDuration`          	 | Integer			| 0			| optional, duration of the door cycle (closed state automatically restored after this delay).																			|
 
 ## LockMechanism
 

@@ -1,6 +1,6 @@
 var Accessory, Service, Characteristic, UUIDGen, Types;
 
-var wpi = require('wiringpi-node');
+var wpi = require('wiring-pi');
 
 module.exports = function(homebridge) {
     console.log("homebridge-gpio-device API version: " + homebridge.version);
@@ -218,9 +218,16 @@ DigitalOutput.prototype = {
  		wpi.digitalWrite(this.pin, value ? this.HIGH : this.LOW);
  		if(this.duration) {
 			setTimeout(function(){
-				wpi.digitalWrite(that.pin, value ? this.LOW : this.HIGH);
-				this.stateCharac.updateValue(!value);
+				wpi.digitalWrite(that.pin, value ? that.LOW : that.HIGH);
+				that.stateCharac.updateValue(!value);
+				if(that.inputStateCharac && !that.inputPin) {
+					that.inputStateCharac.updateValue(!value);
+				}
 			}, this.duration * 1000);
+		}
+		
+		if(this.inputStateCharac && !this.inputPin) {
+			this.inputStateCharac.updateValue(value);
 		}
  		callback();
 	},
@@ -231,11 +238,11 @@ DigitalOutput.prototype = {
 	},
 	
 	stateChange: function(delta) {
- 		var state = wpi.digitalRead(that.pin);
-		wpi.digitalWrite(this.pin, state);
+ 		var state = wpi.digitalRead(this.inputPin);
 		if(this.inputStateCharac) {
 			this.inputStateCharac.updateValue(state == this.HIGH ? 1 : 0);
 		} else {
+			wpi.digitalWrite(this.pin, state);
 			this.stateCharac.updateValue(state == this.HIGH ? 1 : 0);
 		}
  	}
@@ -473,6 +480,7 @@ function GarageDoor(accesory, log, config) {
 	
 	this.inverted = config.inverted || false;
 	this.pulseDuration = config.pulseDuration != null ? config.pulseDuration : 200;
+	this.cycleDuration = (config.cycleDuration || 0) * 1000;
 	
 	this.HIGH = this.inverted ? wpi.LOW : wpi.HIGH;
  	this.LOW = this.inverted ? wpi.HIGH : wpi.LOW;
@@ -495,8 +503,6 @@ function GarageDoor(accesory, log, config) {
 		wpi.digitalWrite(this.togglePin, this.LOW);
 	}
 	
-	
-	
 	this.stateCharac = this.service.getCharacteristic(Characteristic.CurrentDoorState);
 	this.targetCharac = this.service.getCharacteristic(Characteristic.TargetDoorState);
 	
@@ -509,13 +515,10 @@ function GarageDoor(accesory, log, config) {
 	} else {
 		this.sensorPin = null;
 		this.stateCharac.updateValue(Characteristic.CurrentDoorState.CLOSED);
+		this.targetCharac.updateValue(Characteristic.TargetDoorState.CLOSED);
 	}
 	
-	if(this.togglePin === undefined) {
-		this.targetCharac.on('set', this.setState.bind(this));
-	} else {
-		this.targetCharac.on('set', this.toogleState.bind(this));
-	}
+	this.targetCharac.on('set', this.setState.bind(this));
 		
 	accesory.addService(this.service);
 }
@@ -523,13 +526,23 @@ function GarageDoor(accesory, log, config) {
 GarageDoor.prototype = {
  	setState: function(value, callback) {
  		var that = this;
+ 		
+ 		if(this.cycleTimeoutID != null) {
+			clearTimeout(this.cycleTimeoutID);
+			this.cycleTimeoutID = null;
+		}
 
 		if(value == this.stateCharac.value) {
 			callback();
 			return;
 		}
 		
-		var pin = (value == Characteristic.TargetDoorState.OPEN) ? this.openPin : this.closePin;
+		var pin = null;
+		if(this.togglePin === undefined) {
+			pin = (value == Characteristic.TargetDoorState.OPEN) ? this.openPin : this.closePin;
+		} else {
+			pin = this.togglePin;
+		}
 		
 		wpi.digitalWrite(pin, this.HIGH);
 		wpi.delay(this.pulseDuration);
@@ -539,25 +552,12 @@ GarageDoor.prototype = {
 		if(this.sensorPin == null) {
 			this.stateCharac.updateValue(value == Characteristic.TargetDoorState.OPEN ? Characteristic.CurrentDoorState.OPEN : Characteristic.CurrentDoorState.CLOSED);
 		}
-	},
-	
-	toogleState: function(value, callback) {
- 		var that = this;
-
-		if(value == this.stateCharac.value) {
-			callback();
-			return;
-		}
-		
-		var pin = this.togglePin;
-		
-		wpi.digitalWrite(pin, this.HIGH);
-		wpi.delay(this.pulseDuration);
-		wpi.digitalWrite(pin, this.LOW);
-		callback();
-
-		if(this.sensorPin == null) {
-			this.stateCharac.updateValue(value == Characteristic.TargetDoorState.OPEN ? Characteristic.CurrentDoorState.OPEN : Characteristic.CurrentDoorState.CLOSED);
+		if(this.cycleDuration) {
+			this.cycleTimeoutID = setTimeout(function(){
+				that.stateCharac.updateValue(Characteristic.CurrentDoorState.CLOSED);
+				that.targetCharac.updateValue(Characteristic.TargetDoorState.CLOSED);
+				that.cycleTimeoutID = null;
+			}, this.cycleDuration);
 		}
 	},
 	
