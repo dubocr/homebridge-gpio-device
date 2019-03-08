@@ -77,12 +77,17 @@ Configuration example:
 
 
 Accessory type could be one of the following:
-* [ContactSensor](#contactsensor)
-* [Switch](#switchlightbulboutlet)
-* [Lightbulb](#switchlightbulboutlet)
-* [Outlet](#switchlightbulboutlet)
+* [ContactSensor](#digitalinput)
+* [LeakSensor](#digitalinput)
+* [SmokeSensor](#digitalinput)
+* [CarbonDioxideSensor](#digitalinput)
+* [Switch](#digitaloutput)
+* [Lightbulb](#digitaloutput)
+* [Outlet](#digitaloutput)
+* [Faucet](#digitaloutput)
+* [IrrigationSystem](#digitaloutput)
+* [Valve](#digitaloutput)
 * [MotionSensor](#motionsensor)
-* [SmokeSensor](#smokesensor)
 * [Window](#windowwindowcovering)
 * [WindowCovering](#windowwindowcovering)
 * [GarageDoorOpener](#garagedooropener)
@@ -123,20 +128,20 @@ wPi pin number must be used in config file
 
 # Type of accessories
 
-## ContactSensor
+## DigitalInput
 
-`ContactSensor` type monitor a GPIO input and reports it as HomeKit ContactSensor.
+`ContactSensor`, `SmokeSensor` types monitor a GPIO input and reports it as HomeKit Sensor.
 
 ###### Configuration
 
-| Parameter                  | Type						| Default | Note 																							|
-|----------------------------|----------------|---------|---------------------------------------------------|
-| `pin`               		 | Integer				| N/A			| mandatory, input pin number to monitor (HIGH : contact detected, LOW : contact not detected) |
-| `inverted`               	 | Boolean				| false		| optional, reverse the behaviour of the GPIO pin (LOW : contact detected, HIGH : contact not detected) |
-| `postpone`               	 | Integer				| 100		| optional, delay (ms) between 2 state change to avoid bouncing |
+| Parameter                  | Type						| Default 	| Note 																							|
+|----------------------------|--------------------------|---------------------------------------------------|
+| `pin`               		 | Integer					| N/A	  	| mandatory, input pin number to monitor (HIGH : sensor triggered, LOW : sensor not triggered) |
+| `inverted`               	 | Boolean					| false		| optional, reverse the behaviour of the GPIO pin (LOW : sensor triggered, HIGH : sensor not triggered) |
+| `postpone`               	 | Integer					| 100		| optional, delay (ms) between 2 state change to avoid bouncing |
 
 
-## Switch/Lightbulb/Outlet
+## DigitalOutput
 
 `Switch`, `Lightbulb` or `Outlet` operates a GPIO output as ON/OFF.
 
@@ -149,6 +154,13 @@ wPi pin number must be used in config file
 | `initState`             	 | 0/1					| 0			| optional, default state of the switch at startup (0 : off, 1 : on) |
 | `duration`             	 | Integer				| 0			| optional, duration before restoring output state (0 : disabled) |
 | `inputPin`               	 | Integer				| N/A		| optional, input pin number used as go and come. Same state will be reported to the output |
+
+###### Valve optional configuration
+
+| Parameter                  | Type						| Default 	| Note 																							|
+|----------------------------|----------------|---------|---------------------------------------------------|
+| `subType`               	 | String					| "generic"	| optional, valve widget subtype like "irrigation", "shower" or "faucet" |
+| `inputPin`               	 | Integer					| N/A		| optional, input pin number used as "InUse" characteristic for Valve widget |
 
 ## MotionSensor
 
@@ -165,19 +177,6 @@ An optional OccupancySensor can be configured with a timeout.
 | `occupancy.name`           | String					| N/A			| mandatory, occupancy sensor name |
 | `occupancy.timeout`        | Integer (sec)	| 60			| optional, ocupancy timeout in sec after motion detection |
 | `inverted`               	 | Boolean				| false		| optional, reverse the behaviour of the GPIO pin (HIGH : motion not detected, LOW : motion detected) |
-
-## SmokeSensor
-
-`SmokeSensor` monitor a GPIO input and reports it as HomeKit SmokeSensor.
-
-###### Configuration
-
-| Parameter                  | Type						| Default | Note 																							|
-|----------------------------|----------------|---------|---------------------------------------------------|
-| `pin`               		 | Integer				| N/A			| mandatory, input pin number to monitor (HIGH : smoke detected, LOW : smoke not detected) |
-| `inverted`               	 | Boolean				| false		| optional, reverse the behaviour of the GPIO pin (LOW : smoke detected, HIGH : smoke not detected) |
-| `postpone`               	 | Integer				| 100		| optional, delay (ms) between 2 state change to avoid bouncing |
-
 
 ## Window/WindowCovering
 
