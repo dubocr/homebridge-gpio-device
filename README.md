@@ -130,37 +130,37 @@ wPi pin number must be used in config file
 
 ## DigitalInput
 
-`ContactSensor`, `SmokeSensor` types monitor a GPIO input and reports it as HomeKit Sensor.
+`ContactSensor`, `LeakSensor`, `SmokeSensor` and `CarbonDioxideSensor` types monitor a GPIO input and reports it as HomeKit Sensor.
 
 ###### Configuration
 
-| Parameter                  | Type						| Default 	| Note 																							|
-|----------------------------|--------------------------|---------------------------------------------------|
-| `pin`               		 | Integer					| N/A	  	| mandatory, input pin number to monitor (HIGH : sensor triggered, LOW : sensor not triggered) |
-| `inverted`               	 | Boolean					| false		| optional, reverse the behaviour of the GPIO pin (LOW : sensor triggered, HIGH : sensor not triggered) |
-| `postpone`               	 | Integer					| 100		| optional, delay (ms) between 2 state change to avoid bouncing |
+| Parameter                  | Type				| Default 	| Note																																									|
+|----------------------------|------------------|-----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `pin`               		 | Integer			| N/A	  	| mandatory, input pin number to monitor (HIGH : sensor triggered, LOW : sensor not triggered)																			|
+| `inverted`               	 | Boolean			| false		| optional, reverse the behaviour of the GPIO pin (LOW : sensor triggered, HIGH : sensor not triggered)																	|
+| `postpone`               	 | Integer			| 100		| optional, delay (ms) between 2 state change to avoid bouncing																											|
 
 
 ## DigitalOutput
 
-`Switch`, `Lightbulb` or `Outlet` operates a GPIO output as ON/OFF.
+`Switch`, `Lightbulb`, `Outlet`, `Faucet`, `IrrigationSystem` and `Valve` operates a GPIO output as ON/OFF.
 
 ###### Configuration
 
-| Parameter                  | Type						| Default | Note 																							|
-|----------------------------|----------------|---------|---------------------------------------------------|
-| `pin`               		 | Integer				| N/A		| mandatory, output pin number to trigger (on : HIGH, off : LOW) |
-| `inverted`               	 | Boolean				| false		| optional, reverse the behaviour of the GPIO pin (off : HIGH, on : LOW) |
-| `initState`             	 | 0/1					| 0			| optional, default state of the switch at startup (0 : off, 1 : on) |
-| `duration`             	 | Integer				| 0			| optional, duration before restoring output state (0 : disabled) |
-| `inputPin`               	 | Integer				| N/A		| optional, input pin number used as go and come. Same state will be reported to the output |
+| Parameter                  | Type				| Default 	| Note																																									|
+|----------------------------|------------------|-----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `pin`               		 | Integer			| N/A		| mandatory, output pin number to trigger (on : HIGH, off : LOW)																										|
+| `inverted`               	 | Boolean			| false		| optional, reverse the behaviour of the GPIO pin (off : HIGH, on : LOW)																								|
+| `initState`             	 | 0/1				| 0			| optional, default state of the switch at startup (0 : off, 1 : on)																									|
+| `duration`             	 | Integer			| 0			| optional, duration before restoring output state (0 : disabled)																										|
+| `inputPin`               	 | Integer			| N/A		| optional, input pin number used as go and come. Same state will be reported to the output																				|
 
 ###### Valve optional configuration
 
-| Parameter                  | Type						| Default 	| Note 																							|
-|----------------------------|----------------|---------|---------------------------------------------------|
-| `subType`               	 | String					| "generic"	| optional, valve widget subtype like "irrigation", "shower" or "faucet" |
-| `inputPin`               	 | Integer					| N/A		| optional, input pin number used as "InUse" characteristic for Valve widget |
+| Parameter                  | Type				| Default 	| Note																																									|
+|----------------------------|------------------|-----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `subType`               	 | String			| "generic"	| optional, valve widget subtype like "irrigation", "shower" or "faucet"																								|
+| `inputPin`               	 | Integer			| N/A		| optional, input pin number used as "InUse" characteristic for Valve widget																							|
 
 ## MotionSensor
 
@@ -170,13 +170,13 @@ An optional OccupancySensor can be configured with a timeout.
 
 ###### Configuration
 
-| Parameter                  | Type						| Default | Note 																							|
-|----------------------------|----------------|---------|---------------------------------------------------|
-| `pin`               		   | Integer				| N/A			| mandatory, input pin number to monitor (HIGH : motion detected, LOW : motion not detected) |
-| `occupancy`            		 | {}							| null		| optional, activate an occupancy sensor with a timeout after motion detection |
-| `occupancy.name`           | String					| N/A			| mandatory, occupancy sensor name |
-| `occupancy.timeout`        | Integer (sec)	| 60			| optional, ocupancy timeout in sec after motion detection |
-| `inverted`               	 | Boolean				| false		| optional, reverse the behaviour of the GPIO pin (HIGH : motion not detected, LOW : motion detected) |
+| Parameter                  | Type				| Default 	| Note																																									|
+|----------------------------|------------------|-----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `pin`               		 | Integer			| N/A		| mandatory, input pin number to monitor (HIGH : motion detected, LOW : motion not detected)																			|
+| `occupancy`            	 | {}				| null		| optional, activate an occupancy sensor with a timeout after motion detection																							|
+| `occupancy.name`           | String			| N/A		| mandatory, occupancy sensor name																																		|
+| `occupancy.timeout`        | Integer (sec)	| 60		| optional, ocupancy timeout in sec after motion detection																												|
+| `inverted`               	 | Boolean			| false		| optional, reverse the behaviour of the GPIO pin (HIGH : motion not detected, LOW : motion detected)																	|
 
 ## Window/WindowCovering
 
@@ -185,13 +185,13 @@ When operating, the GPIO is turned on for 200ms to simulate a button pression on
 
 ###### Configuration
 
-| Parameter                  | Type						| Default | Note 																							|
-|----------------------------|----------------|---------|---------------------------------------------------|
-| `pins`               		   | Integer[2]			| N/A			| mandatory, output pins numbers to trigger (pins[0] : open, pins[1] : close) |
-| `shiftDuration`            | Integer (sec)	| 20			| optional, duration of a shift (close->open or open->close) used to compute intermediate position |
-| `initPosition`						 | Integer (%)		| 0				| optional, default shutter position at homebridge startup to compensate absence of state feedback, recommanded to ensure open/close scenarios after unexptected restart: 99% |
-| `inverted`               	 | Boolean				| false		| optional, reverse the behaviour of the GPIO pin (pulse becomes HIGH->LOW->HIGH) |
-| `pulseDuration`          	 | Integer				| 200		| optional, duration of the pin pulse. (0: deactivate, pin active during all shifting) |
+| Parameter                  | Type				| Default 	| Note																																									|
+|----------------------------|------------------|-----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `pins`               		 | Integer[2]		| N/A	  	| mandatory, output pins numbers to trigger (pins[0] : open, pins[1] : close)																							|
+| `shiftDuration`            | Integer (sec)	| 20		| optional, duration of a shift (close->open or open->close) used to compute intermediate position																		|
+| `initPosition`			 | Integer (%)		| 0			| optional, default shutter position at homebridge startup to compensate absence of state feedback, recommanded to ensure open/close scenarios after unexptected restart: 99% |
+| `inverted`               	 | Boolean			| false		| optional, reverse the behaviour of the GPIO pin (pulse becomes HIGH->LOW->HIGH)																						|
+| `pulseDuration`          	 | Integer			| 200		| optional, duration of the pin pulse. (0: deactivate, pin active during all shifting)																					|
 
 ## GarageDoorOpener
 
@@ -200,13 +200,13 @@ When operating, the GPIO is turned on for 200ms.
 
 ###### Configuration
 
-| Parameter                  | Type						| Default | Note 																							|
-|----------------------------|----------------|---------|---------------------------------------------------|
-| `pin`               		   | Integer			| N/A			| optional, output pin number for toggle opener (first pulse: open, second pulse: close) |
-| `pins`               		   | Integer[2]			| N/A			| optional, output pins numbers for open/close opener (pins[0] : open, pins[1] : close) |
-| `sensorPin`                  | Integer			| N/A			| optional, input pin numbers for open/close sensor (LOW: closed, HIGH: open) |
-| `inverted`               	 | Boolean				| false		| optional, reverse the behaviour of the GPIO pin (pulse becomes HIGH->LOW->HIGH) |
-| `pulseDuration`          	 | Integer				| 200		| optional, duration of the pin pulse. |
+| Parameter                  | Type				| Default 	| Note																																									|
+|----------------------------|------------------|-----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `pin`               		 | Integer			| N/A		| optional, output pin number for toggle opener (first pulse: open, second pulse: close)																				|
+| `pins`               		 | Integer[2]		| N/A		| optional, output pins numbers for open/close opener (pins[0] : open, pins[1] : close)																					|
+| `sensorPin`                | Integer			| N/A		| optional, input pin numbers for open/close sensor (LOW: closed, HIGH: open)																							|
+| `inverted`               	 | Boolean			| false		| optional, reverse the behaviour of the GPIO pin (pulse becomes HIGH->LOW->HIGH)																						|
+| `pulseDuration`          	 | Integer			| 200		| optional, duration of the pin pulse. |
 
 ## LockMechanism
 
@@ -215,8 +215,8 @@ When operating, the latch is unlocked for `duration` seconds (or indefinitely if
 
 ###### Configuration
 
-| Parameter                  | Type						| Default | Note 																							|
-|----------------------------|----------------|---------|---------------------------------------------------|
-| `pin`               		 | Integer		  | N/A		| mandatory, output pin number to trigger (locked : LOW, unlocked : HIGH) |
-| `duration`            	 | Integer (sec)  | 0		| optional, duration before restoring locked state (0 : disabled) |
-| `inverted`				 | Boolean		  | false	| optional, reverse the behaviour of the GPIO pin (locked : HIGH, unlocked : LOW) |
+| Parameter                  | Type				| Default 	| Note																																									|
+|----------------------------|------------------|-----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `pin`               		 | Integer		  	| N/A		| mandatory, output pin number to trigger (locked : LOW, unlocked : HIGH)																								|
+| `duration`            	 | Integer (sec)  	| 0			| optional, duration before restoring locked state (0 : disabled)																										|
+| `inverted`				 | Boolean		  	| false		| optional, reverse the behaviour of the GPIO pin (locked : HIGH, unlocked : LOW)																						|
