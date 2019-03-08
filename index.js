@@ -33,15 +33,18 @@ function DeviceAccesory(log, config) {
 	wpi.setup('wpi');
 	switch(config.type) {
 		case 'ContactSensor':
+		case 'LeakSensor':
+		case 'SmokeSensor':
+		case 'CarbonDioxideSensor': 
 			this.device = new DigitalInput(this, log, config);
 		break;
 		case 'Switch':
 		case 'Lightbulb':
 		case 'Outlet':
+		case 'Faucet':
+		case 'IrrigationSystem':
+		case 'Valve':
 			this.device = new DigitalOutput(this, log, config);
-		break;
-		case 'SmokeSensor':
-			this.device = new SmokeSensor(this, log, config);
 		break;
 		case 'MotionSensor':
 			this.device = new PIRSensor(this, log, config);
@@ -79,8 +82,32 @@ function DigitalInput(accesory, log, config) {
 	this.toggle = config.toggle || false;
 	this.postpone = config.postpone || 100;
 	
-	this.service = new Service[config.type](config.name);
-	this.service.getCharacteristic(Characteristic.ContactSensorState)
+	this.HIGH = this.inverted ? wpi.LOW : wpi.HIGH;
+ 	this.LOW = this.inverted ? wpi.HIGH : wpi.LOW;
+	
+	this.ON_STATE = 1;
+	this.OFF_STATE = 0;
+	
+	var service = new Service[config.type](config.name);
+	
+	switch(config.type) {
+		case 'ContactSensor':
+			this.stateCharac = service.getCharacteristic(Characteristic.ContactSensorState);
+		break;
+		case 'LeakSensor':
+			this.stateCharac = service.getCharacteristic(Characteristic.LeakDetected);
+		break;
+		case 'SmokeSensor':
+			this.stateCharac = service.getCharacteristic(Characteristic.ContactSensorState);
+		break;
+		case 'CarbonDioxideSensor':
+			this.stateCharac = service.getCharacteristic(Characteristic.CarbonDioxideDetected);
+		break;
+		default:
+			 throw new Error("Type " + config.type + " not supported");
+		break;
+	}
+	this.stateCharac
 		.on('get', this.getState.bind(this));
 	
 	wpi.pinMode(this.pin, wpi.INPUT);
@@ -89,7 +116,7 @@ function DigitalInput(accesory, log, config) {
 	else
 		wpi.wiringPiISR(this.pin, wpi.INT_EDGE_BOTH, this.stateChange.bind(this));
 		
-	accesory.addService(this.service);
+	accesory.addService(service);
 }
 
 DigitalInput.prototype = { 	
@@ -99,9 +126,7 @@ DigitalInput.prototype = {
 			this.postponeId = setTimeout(function() {
 				that.postponeId = null;
 				var state = wpi.digitalRead(that.pin);
-				if(that.inverted)
-					state = !state;
-				that.service.getCharacteristic(Characteristic.ContactSensorState).updateValue(state ? Characteristic.ContactSensorState.CONTACT_DETECTED : Characteristic.ContactSensorState.CONTACT_NOT_DETECTED);
+				this.stateCharac.updateValue(state == this.HIGH ? this.ON_STATE : this.OFF_STATE);
 			}, this.postpone);
  		}
  	},
@@ -112,11 +137,8 @@ DigitalInput.prototype = {
 			this.postponeId = setTimeout(function() {
 				that.postponeId = null;
 				var state = wpi.digitalRead(that.pin);
-				if(that.inverted)
-					state = !state;
-				if(state) {
-					var charac = that.service.getCharacteristic(Characteristic.ContactSensorState);
-					charac.updateValue(charac.value == Characteristic.ContactSensorState.CONTACT_NOT_DETECTED ? Characteristic.ContactSensorState.CONTACT_DETECTED : Characteristic.ContactSensorState.CONTACT_NOT_DETECTED);
+				if(state == this.HIGH) {
+					this.stateCharac.updateValue(this.stateCharac.value == this.ON_STATE ? this.OFF_STATE : this.ON_STATE);
 				}
 			}, this.postpone);
  		}
@@ -124,9 +146,7 @@ DigitalInput.prototype = {
  	
  	getState: function(callback) {
  		var state = wpi.digitalRead(this.pin);
- 		if(this.inverted)
- 			state = !state;
- 		callback(null, state ? Characteristic.ContactSensorState.CONTACT_DETECTED : Characteristic.ContactSensorState.CONTACT_NOT_DETECTED);
+ 		callback(null, state == this.HIGH ? this.ON_STATE : this.OFF_STATE);
 	}
 }
 
@@ -138,113 +158,87 @@ function DigitalOutput(accesory, log, config) {
 	this.initState = config.initState || 0;
 	this.inputPin = config.inputPin || false;
 	
-	if(this.inverted) {
-		this.initState = !this.initState;
-	}
-	
+	this.HIGH = this.inverted ? wpi.LOW : wpi.HIGH;
+ 	this.LOW = this.inverted ? wpi.HIGH : wpi.LOW;
+		
 	wpi.pinMode(this.pin, wpi.OUTPUT);
-	wpi.digitalWrite(this.pin, this.initState ? wpi.HIGH : wpi.LOW);
+	wpi.digitalWrite(this.pin, this.initState ? this.HIGH : this.LOW);
 	
 	if(this.inputPin) {
 		wpi.pinMode(this.inputPin, wpi.INPUT);
 		wpi.wiringPiISR(this.inputPin, wpi.INT_EDGE_BOTH, this.stateChange.bind(this));
 	}
 	
-	this.service = new Service[config.type](config.name);
-	this.service.getCharacteristic(Characteristic.On)
-		.on('set', this.setOn.bind(this))
-		.on('get', this.getOn.bind(this));
-		
-	accesory.addService(this.service);
+	var service = new Service[config.type](config.name);
+	
+	switch(config.type) {
+		case 'Valve':
+		case 'IrrigationSystem':
+			this.inputStateCharac = service.getCharacteristic(Characteristic.InUse);
+		case 'Faucet':
+			this.stateCharac = service.getCharacteristic(Characteristic.Active);
+		break;
+		case 'Switch':
+		case 'Lightbulb':
+		case 'Outlet':
+			this.stateCharac = service.getCharacteristic(Characteristic.On);
+		break;
+		default:
+			 throw new Error("Type " + config.type + " not supported");
+		break;
+	}
+	this.stateCharac
+		.on('set', this.setState.bind(this))
+		.on('get', this.getState.bind(this));
+	
+	if(config.subType && config.type == 'Valve') {
+		var type = Characteristic.ValveType.GENERIC_VALVE;
+		switch(config.subType) {
+			case 'irrigation':
+				service.getCharacteristic(Characteristic.ValveType).updateValue(Characteristic.ValveType.IRRIGATION);
+			break;
+			case 'shower':
+				service.getCharacteristic(Characteristic.ValveType).updateValue(Characteristic.ValveType.SHOWER_HEAD);
+			break;
+			case 'faucet':
+				service.getCharacteristic(Characteristic.ValveType).updateValue(Characteristic.ValveType.WATER_FAUCET);
+			break;
+			case 'generic':
+			default:
+			break;
+		}
+	}
+	
+	accesory.addService(service);
 }
 
 DigitalOutput.prototype = {
-  setOn: function(value, callback) {
+	setState: function(value, callback) {
   		var that = this;
- 		if(this.inverted)
- 			value = !value;
- 		wpi.digitalWrite(this.pin, value ? wpi.HIGH : wpi.LOW);
+ 		wpi.digitalWrite(this.pin, value ? this.HIGH : this.LOW);
  		if(this.duration) {
 			setTimeout(function(){
-				wpi.digitalWrite(that.pin, value ? wpi.LOW : wpi.HIGH);
-				that.service.getCharacteristic(Characteristic.On).updateValue(that.inverted ? value : !value);
+				wpi.digitalWrite(that.pin, value ? this.LOW : this.HIGH);
+				this.stateCharac.updateValue(!value);
 			}, this.duration * 1000);
 		}
  		callback();
 	},
 	
-	getOn: function(callback) {
+	getState: function(callback) {
 		var state = wpi.digitalRead(this.pin);
- 		if(this.inverted)
- 			state = !state;
- 		callback(null, state ? 1 : 0);
+ 		callback(null, state == this.HIGH ? 1 : 0);
 	},
 	
 	stateChange: function(delta) {
  		var state = wpi.digitalRead(that.pin);
 		wpi.digitalWrite(this.pin, state);
-		if(this.inverted)
- 			state = !state;
-		this.service.getCharacteristic(Characteristic.On).updateValue(state);
+		if(this.inputStateCharac) {
+			this.inputStateCharac.updateValue(state == this.HIGH ? 1 : 0);
+		} else {
+			this.stateCharac.updateValue(state == this.HIGH ? 1 : 0);
+		}
  	}
-}
-
-function SmokeSensor(accesory, log, config) {
-	this.log = log;
-	this.pin = config.pin;
-	this.inverted = config.inverted || false;
-	this.toggle = config.toggle || false;
-	this.postpone = config.postpone || 100;
-	
-	this.service = new Service[config.type](config.name);
-	this.service.getCharacteristic(Characteristic.SmokeDetected)
-		.on('get', this.getState.bind(this));
-	
-	wpi.pinMode(this.pin, wpi.INPUT);
-	if(this.toggle)
-		wpi.wiringPiISR(this.pin, this.inverted ? wpi.INT_EDGE_FALLING : wpi.INT_EDGE_RISING, this.toggleState.bind(this));
-	else
-		wpi.wiringPiISR(this.pin, wpi.INT_EDGE_BOTH, this.stateChange.bind(this));
-		
-	accesory.addService(this.service);
-}
-
-SmokeSensor.prototype = { 	
- 	stateChange: function(delta) {
- 		if(this.postponeId != null) {
- 			var that = this;
-			this.postponeId = setTimeout(function() {
-				that.postponeId = null;
-				var state = wpi.digitalRead(that.pin);
-				if(that.inverted)
-					state = !state;
-				that.service.getCharacteristic(Characteristic.SmokeDetected).updateValue(state ? Characteristic.SmokeDetected.SMOKE_DETECTED : Characteristic.SmokeDetected.SMOKE_NOT_DETECTED);
-			}, this.postpone);
- 		}
- 	},
- 	
- 	toggleState: function(delta) {
- 		if(this.postponeId != null) {
- 			var that = this;
-			this.postponeId = setTimeout(function() {
-				that.postponeId = null;
-				var state = wpi.digitalRead(that.pin);
-				if(that.inverted)
-					state = !state;
-				if(state) {
-					var charac = that.service.getCharacteristic(Characteristic.SmokeDetected);
-					charac.updateValue(charac.value == Characteristic.SmokeDetected.SMOKE_NOT_DETECTED ? Characteristic.SmokeDetected.SMOKE_DETECTED : Characteristic.SmokeDetected.SMOKE_NOT_DETECTED);
-				}
-			}, this.postpone);
- 		}
- 	},
- 	
- 	getState: function(callback) {
- 		var state = wpi.digitalRead(this.pin);
- 		if(this.inverted)
- 			state = !state;
- 		callback(null, state ? Characteristic.SmokeDetected.SMOKE_DETECTED : Characteristic.SmokeDetected.SMOKE_NOT_DETECTED);
-	}
 }
 
 function LockMechanism(accesory, log, config) {
