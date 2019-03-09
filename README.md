@@ -4,13 +4,11 @@ Homebridge GPIO device expose several HomeKit accessories interacting with GPIO
 
 # Installation
 
-1. Install homebridge using: npm install -g homebridge
-2. Install wiringPi using: sudo apt-get install wiringpi
-3. Install this plugin using: npm install -g homebridge-gpio-device
+1. Install homebridge using: `npm install -g homebridge`
+2.1 Install wiringPi using: `sudo apt-get install wiringpi`
+2.2 Add rights to homebridge user if running homebridge as systemd service: `sudo usermod -G gpio homebridge`
+3. Install this plugin using: `npm install -g homebridge-gpio-device`
 4. Update your configuration file. See bellow for a sample.
-
-homebridge-gpio-device use wiring-pi lib which require to run as root.
-In /etc/systemd/system/homebridge.service, update : `User=root`
 
 # Configuration
 
@@ -60,6 +58,13 @@ Configuration example:
 			"name": "Front Door",
 			"pin": 6,
 			"duration": 5
+		},
+		{
+			"accessory": "GPIODevice",
+			"type": "Valve",
+			"name": "Garden irrigation",
+			"subType": "irrigation",
+			"pin": 6
 		}
 	],
 
@@ -96,6 +101,7 @@ Accessory type could be one of the following:
 
 wPi pin number must be used in config file
 
+`gpio readall`
 ```
  +-----+-----+---------+------+---+---Pi 2---+---+------+---------+-----+-----+
  | BCM | wPi |   Name  | Mode | V | Physical | V | Mode | Name    | wPi | BCM |
