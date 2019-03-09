@@ -274,17 +274,20 @@ LockMechanism.prototype = {
  		var CLOSE = this.inverted ? wpi.HIGH : wpi.LOW;
  		
  		if(value == Characteristic.LockTargetState.UNSECURED) {
+			this.log("Open LockMechanism on PIN: " + this.pin);
  			wpi.digitalWrite(this.pin, OPEN);
  			this.state.updateValue(Characteristic.LockCurrentState.UNSECURED);
  			callback();
  			if(this.duration) {
 				setTimeout(function(){
+					this.log("Close LockMechanism on PIN: " + this.pin);
 					wpi.digitalWrite(that.pin, CLOSE);
 					that.target.updateValue(Characteristic.LockTargetState.SECURED);
 					that.state.updateValue(Characteristic.LockCurrentState.SECURED);
 				}, this.duration * 1000);
  			}
  		} else {
+			this.log("Close LockMechanism on PIN: " + this.pin);
  			wpi.digitalWrite(that.pin, CLOSE);
  			this.state.updateValue(Characteristic.LockCurrentState.SECURED);
  			callback();
