@@ -5,10 +5,10 @@ Homebridge GPIO device expose several HomeKit accessories interacting with GPIO
 # Installation
 
 1. Install homebridge using: `npm install -g homebridge`
-2.1 Install wiringPi using: `sudo apt-get install wiringpi`
-2.2 Add rights to homebridge user if running homebridge as systemd service: `sudo usermod -G gpio homebridge`
-3. Install this plugin using: `npm install -g homebridge-gpio-device`
-4. Update your configuration file. See bellow for a sample.
+2. Install wiringPi using: `sudo apt-get install wiringpi`
+3. Add rights to homebridge user if running homebridge as systemd service: `sudo usermod -G gpio homebridge`
+4. Install this plugin using: `npm install -g homebridge-gpio-device`
+5. Update your configuration file. See bellow for a sample.
 
 # Configuration
 
