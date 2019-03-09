@@ -98,7 +98,7 @@ function DigitalInput(accesory, log, config) {
 			this.stateCharac = service.getCharacteristic(Characteristic.LeakDetected);
 		break;
 		case 'SmokeSensor':
-			this.stateCharac = service.getCharacteristic(Characteristic.ContactSensorState);
+			this.stateCharac = service.getCharacteristic(Characteristic.SmokeDetected);
 		break;
 		case 'CarbonDioxideSensor':
 			this.stateCharac = service.getCharacteristic(Characteristic.CarbonDioxideDetected);
@@ -126,7 +126,7 @@ DigitalInput.prototype = {
 			this.postponeId = setTimeout(function() {
 				that.postponeId = null;
 				var state = wpi.digitalRead(that.pin);
-				that.stateCharac.updateValue(state == this.HIGH ? this.ON_STATE : this.OFF_STATE);
+				that.stateCharac.updateValue(state == that.HIGH ? that.ON_STATE : that.OFF_STATE);
 			}, this.postpone);
  		}
  	},
@@ -137,9 +137,7 @@ DigitalInput.prototype = {
 			this.postponeId = setTimeout(function() {
 				that.postponeId = null;
 				var state = wpi.digitalRead(that.pin);
-				if(state == this.HIGH) {
-					this.stateCharac.updateValue(this.stateCharac.value == this.ON_STATE ? this.OFF_STATE : this.ON_STATE);
-				}
+				that.stateCharac.updateValue(that.stateCharac.value == that.ON_STATE ? that.OFF_STATE : that.ON_STATE);
 			}, this.postpone);
  		}
  	},
@@ -216,12 +214,13 @@ DigitalOutput.prototype = {
 	setState: function(value, callback) {
   		var that = this;
  		wpi.digitalWrite(this.pin, value ? this.HIGH : this.LOW);
- 		if(this.duration) {
-			setTimeout(function(){
-				wpi.digitalWrite(that.pin, value ? that.LOW : that.HIGH);
-				that.stateCharac.updateValue(!value);
+ 		if(this.duration && this.durationTimeoutID == null) {
+			this.durationTimeoutID = setTimeout(function(){
+				that.durationTimeoutID = null;
+				wpi.digitalWrite(that.pin, that.initState ? that.HIGH : that.LOW);
+				that.stateCharac.updateValue(that.initState);
 				if(that.inputStateCharac && !that.inputPin) {
-					that.inputStateCharac.updateValue(!value);
+					that.inputStateCharac.updateValue(that.initState);
 				}
 			}, this.duration * 1000);
 		}
