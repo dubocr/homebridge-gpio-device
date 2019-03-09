@@ -1,6 +1,6 @@
 var Accessory, Service, Characteristic, UUIDGen, Types;
 
-var wpi = require('wiring-pi');
+var wpi = require('node-wiring-pi');
 
 module.exports = function(homebridge) {
     console.log("homebridge-gpio-device API version: " + homebridge.version);
