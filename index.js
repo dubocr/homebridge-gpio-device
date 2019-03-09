@@ -126,7 +126,7 @@ DigitalInput.prototype = {
 			this.postponeId = setTimeout(function() {
 				that.postponeId = null;
 				var state = wpi.digitalRead(that.pin);
-				this.stateCharac.updateValue(state == this.HIGH ? this.ON_STATE : this.OFF_STATE);
+				that.stateCharac.updateValue(state == this.HIGH ? this.ON_STATE : this.OFF_STATE);
 			}, this.postpone);
  		}
  	},
