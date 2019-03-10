@@ -1,6 +1,6 @@
 {
   "name": "homebridge-gpio-device",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "description": "Homebridge plugin exposing devices plugged on GPIO",
   "main": "index.js",
   "keywords": [

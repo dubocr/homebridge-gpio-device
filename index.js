@@ -484,15 +484,12 @@ function GarageDoor(accesory, log, config) {
 	this.log = log;
 	
 	this.inverted = config.inverted || false;
+	this.autoClose = config.autoClose || false;
 	this.pulseDuration = config.pulseDuration != null ? config.pulseDuration : 200;
-	this.cycleDuration = (config.cycleDuration || 5) * 1000;
+	this.shiftDuration = (config.shiftDuration || 5) * 1000;
 	this.openSensorPin = config.openSensorPin != null ? config.openSensorPin : null;
 	this.closeSensorPin = config.closeSensorPin != null ? config.closeSensorPin : null;
 	this.invertedInputs = config.invertedInputs || false;
-	
-	if(config.sensorPin && this.openSensorPin === null) {
-		this.openSensorPin = config.sensorPin;
-	}
 	
 	this.HIGH = this.inverted ? wpi.LOW : wpi.HIGH;
  	this.LOW = this.inverted ? wpi.HIGH : wpi.LOW;
@@ -580,16 +577,20 @@ GarageDoor.prototype = {
 		wpi.digitalWrite(pin, this.LOW);
 		callback();
 
-		if(this.closeSensorPin === null && this.openSensorPin === null) {
-			this.stateCharac.updateValue(value == Characteristic.TargetDoorState.OPEN ? Characteristic.CurrentDoorState.OPEN : Characteristic.CurrentDoorState.CLOSED);
-			
-			if(this.cycleDuration) {
-				this.cycleTimeoutID = setTimeout(function(){
-					this.stateCharac.updateValue(Characteristic.CurrentDoorState.CLOSED);
-					this.targetCharac.updateValue(Characteristic.TargetDoorState.CLOSED);
-					this.cycleTimeoutID = null;
-				}.bind(this), this.cycleDuration);
-			}
+		if(this.closeSensorPin === null && this.openSensorPin === null && !this.shiftTimeoutID) {
+			this.shiftTimeoutID = setTimeout(function(){
+				this.stateCharac.updateValue(value == Characteristic.TargetDoorState.OPEN ? Characteristic.CurrentDoorState.OPEN : Characteristic.CurrentDoorState.CLOSED);
+		
+				if(value == Characteristic.TargetDoorState.OPEN && this.autoClose) {
+					this.shiftTimeoutID = setTimeout(function(){
+						this.stateCharac.updateValue(Characteristic.CurrentDoorState.CLOSED);
+						this.targetCharac.updateValue(Characteristic.TargetDoorState.CLOSED);
+						this.shiftTimeoutID = null;
+					}.bind(this), this.shiftDuration);
+				} else {
+					this.shiftTimeoutID = null;
+				}
+			}.bind(this), this.shiftDuration);
 		}
 	},
  	
@@ -605,21 +606,21 @@ GarageDoor.prototype = {
 					this.targetCharac.updateValue(state ? Characteristic.TargetDoorState.CLOSED : Characteristic.TargetDoorState.OPEN);
 					this.stateCharac.updateValue(state ? Characteristic.CurrentDoorState.CLOSED : Characteristic.CurrentDoorState.OPENING);
 					
-					if(!state && this.openSensorPi === null) {
-						this.cycleTimeoutID = setTimeout(function(){
+					if(!state && this.openSensorPi === null && !this.shiftTimeoutID) {
+						this.shiftTimeoutID = setTimeout(function(){
 							this.stateCharac.updateValue(Characteristic.CurrentDoorState.OPEN);
-							this.cycleTimeoutID = null;
-						}.bind(this), this.cycleDuration);
+							this.shiftTimeoutID = null;
+						}.bind(this), this.shiftDuration);
 					}
 				} else if(pin === this.openSensorPin) {
 					this.targetCharac.updateValue(state ? Characteristic.TargetDoorState.OPEN : Characteristic.TargetDoorState.CLOSED);
 					this.stateCharac.updateValue(state ? Characteristic.CurrentDoorState.OPEN : Characteristic.CurrentDoorState.CLOSING);
 					
-					if(!state && this.closeSensorPin === null) {
-						this.cycleTimeoutID = setTimeout(function(){
+					if(!state && this.closeSensorPin === null && !this.shiftTimeoutID) {
+						this.shiftTimeoutID = setTimeout(function(){
 							this.stateCharac.updateValue(Characteristic.CurrentDoorState.CLOSED);
-							this.cycleTimeoutID = null;
-						}.bind(this), this.cycleDuration);
+							this.shiftTimeoutID = null;
+						}.bind(this), this.shiftDuration);
 					}
 				} else {
 					this.targetCharac.updateValue(Characteristic.TargetDoorState.CLOSED);

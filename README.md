@@ -210,11 +210,12 @@ When operating, the GPIO is turned on for 200ms.
 | `pin`               		 | Integer			| N/A		| optional, output pin number for toggle opener (first pulse: open, second pulse: close)																				|
 | `pins`               		 | Integer[2]		| N/A		| optional, output pins numbers for open/close opener (pins[0] : open, pins[1] : close)																					|
 | `inverted`               	 | Boolean			| false		| optional, reverse the behaviour of the GPIO pin (pulse becomes HIGH->LOW->HIGH)																						|
-| `openSensorPin`            | Integer			| N/A		| optional, input pin number for open sensor (HIGH: open)																							|
-| `closeSensorPin`           | Integer			| N/A		| optional, input pin number for close sensor (HIGH: close)																							|
-| `invertedInputs`         	 | Boolean			| false		| optional, reverse the behaviour of the GPIO input pins (detect open/close on LOW state)																						|
+| `openSensorPin`            | Integer			| N/A		| optional, input pin number for open sensor (HIGH: open)																												|
+| `closeSensorPin`           | Integer			| N/A		| optional, input pin number for close sensor (HIGH: close)																												|
+| `invertedInputs`         	 | Boolean			| false		| optional, reverse the behaviour of the GPIO input pins (detect open/close on LOW state)																				|
 | `pulseDuration`          	 | Integer			| 200		| optional, duration of the pin pulse.																																	|
-| `cycleDuration`          	 | Integer			| 0			| optional, duration of the door shifting. Emulate transition if no sensor or only one is provided.																			|
+| `shiftDuration`          	 | Integer			| 5			| optional, duration of the door shifting (seconds). Emulate transition if no sensor or only one is provided.															|
+| `autoClose`	          	 | Boolean			| false		| optional, emulate cyclic door if no sensor is provided. Reset to close state after 2x`shiftDuration` seconds.															|
 
 ## LockMechanism
 
