@@ -273,54 +273,80 @@ function LockMechanism(accesory, log, config) {
 	this.pin = config.pin;
 	this.inverted = config.inverted || false;
 	this.duration = config.duration || false;
+	this.inputPin = config.inputPin != null ? config.inputPin : null;
+	this.postpone = config.postpone || 100;
 	
-	wpi.pinMode(this.pin, wpi.OUTPUT);
-	wpi.digitalWrite(this.pin, this.inverted ? wpi.HIGH : wpi.LOW);
+	this.HIGH = this.inverted ? wpi.LOW : wpi.HIGH;
+ 	this.LOW = this.inverted ? wpi.HIGH : wpi.LOW;
  	
+	wpi.pinMode(this.pin, wpi.OUTPUT);
+	wpi.digitalWrite(this.pin, this.inverted ? this.HIGH : this.LOW);
+ 	
+ 	if(this.inputPin) {
+		wpi.pinMode(this.inputPin, wpi.INPUT);
+		wpi.pullUpDnControl(this.inputPin, wpi.PUD_DOWN);
+		wpi.wiringPiISR(this.inputPin, wpi.INT_EDGE_BOTH, this.stateChange.bind(this));
+	}
+	
 	this.service = new Service[config.type](config.name);
 	this.target = this.service.getCharacteristic(Characteristic.LockTargetState)
-		.on('set', this.setLockState.bind(this))
-		.updateValue(Characteristic.LockTargetState.SECURED);
-	this.state = this.service.getCharacteristic(Characteristic.LockCurrentState)
-		.on('get', this.getLockState.bind(this))
-		.updateValue(Characteristic.LockCurrentState.SECURED);
+		.on('set', this.setLockState.bind(this));
+	this.state = this.service.getCharacteristic(Characteristic.LockCurrentState);
+		
+	if(this.inputPin === null) {
+		this.target.updateValue(Characteristic.LockCurrentState.SECURED);
+		this.state.updateValue(Characteristic.LockCurrentState.SECURED);
+	} else {
+		this.stateChange();
+	}
 	
 	accesory.addService(this.service);
 }
 
 LockMechanism.prototype = {
   	setLockState: function(value, callback) {
-  		var that = this;
- 		var OPEN = this.inverted ? wpi.LOW : wpi.HIGH;
- 		var CLOSE = this.inverted ? wpi.HIGH : wpi.LOW;
- 		
  		if(value == Characteristic.LockTargetState.UNSECURED) {
 			this.log("Open LockMechanism on PIN: " + this.pin);
- 			wpi.digitalWrite(this.pin, OPEN);
- 			this.state.updateValue(Characteristic.LockCurrentState.UNSECURED);
+ 			wpi.digitalWrite(this.pin, this.HIGH);
  			callback();
+ 			if(this.inputPin === null) {
+ 				this.state.updateValue(Characteristic.LockCurrentState.UNSECURED);
+ 			}
  			if(this.duration) {
 				setTimeout(function(){
 					this.log("Close LockMechanism on PIN: " + this.pin);
-					wpi.digitalWrite(that.pin, CLOSE);
-					that.target.updateValue(Characteristic.LockTargetState.SECURED);
-					that.state.updateValue(Characteristic.LockCurrentState.SECURED);
-				}, this.duration * 1000);
+					wpi.digitalWrite(this.pin, this.LOW);
+					this.target.updateValue(Characteristic.LockTargetState.SECURED);
+					if(this.inputPin === null) {
+						this.state.updateValue(Characteristic.LockCurrentState.SECURED);
+					}
+				}.bind(this), this.duration * 1000);
  			}
  		} else {
 			this.log("Close LockMechanism on PIN: " + this.pin);
- 			wpi.digitalWrite(that.pin, CLOSE);
- 			this.state.updateValue(Characteristic.LockCurrentState.SECURED);
+ 			wpi.digitalWrite(this.pin, this.LOW);
  			callback();
+ 			if(this.inputPin === null) {
+ 				this.state.updateValue(Characteristic.LockCurrentState.SECURED);
+ 			}
  		}
 	},
 	
 	getLockState: function(callback) {
 		var state = wpi.digitalRead(this.pin);
- 		if(this.inverted)
- 			state = !state;
- 		callback(null, state ? Characteristic.LockCurrentState.UNSECURED : Characteristic.LockCurrentState.SECURED);
-	}
+ 		callback(null, state == this.HIGH ? Characteristic.LockCurrentState.UNSECURED : Characteristic.LockCurrentState.SECURED);
+	},
+	
+	stateChange: function(delta) {
+		if(this.unbouncingID == null) {
+			this.unbouncingID = setTimeout(function() {
+				this.unbouncingID = null;
+				var state = wpi.digitalRead(this.inputPin);
+				this.state.updateValue(state == this.HIGH ? Characteristic.LockCurrentState.UNSECURED : Characteristic.LockCurrentState.SECURED);
+ 				this.target.updateValue(state == this.HIGH ? Characteristic.LockTargetState.UNSECURED : Characteristic.LockTargetState.SECURED);
+			}.bind(this), this.postpone);
+		}
+ 	}
 }
 
 function PIRSensor(accesory, log, config) {
@@ -397,7 +423,7 @@ function RollerShutter(accesory, log, config) {
 	this.openSensorPin = config.openSensorPin != null ? config.openSensorPin : null;
 	this.closeSensorPin = config.closeSensorPin != null ? config.closeSensorPin : null;
 	this.invertedInputs = config.invertedInputs || false;
-	
+	this.postpone = config.postpone || 100;
 	
 	this.HIGH = this.inverted ? wpi.LOW : wpi.HIGH;
  	this.LOW = this.inverted ? wpi.HIGH : wpi.LOW;
@@ -562,7 +588,7 @@ RollerShutter.prototype = {
 					this.positionCharac.updateValue(this.initState);
 					this.stateCharac.updateValue(Characteristic.PositionState.STOPPED);
 				}
-			}.bind(this), 500);
+			}.bind(this), this.postpone);
 		}
  	}
 }

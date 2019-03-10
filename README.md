@@ -254,3 +254,4 @@ When operating, the latch is unlocked for `duration` seconds (or indefinitely if
 | `pin`               		 | Integer		  	| N/A		| mandatory, output pin number to trigger (locked : LOW, unlocked : HIGH)																								|
 | `duration`            	 | Integer (sec)  	| 0			| optional, duration before restoring locked state (0 : disabled)																										|
 | `inverted`				 | Boolean		  	| false		| optional, reverse the behaviour of the GPIO pin (locked : HIGH, unlocked : LOW)																						|
+| `inputPin`               	 | Integer			| N/A		| optional, input pin number for lock sensor (HIGH: locked, LOW : unlocked)																								|
