@@ -65,6 +65,12 @@ Configuration example:
 			"name": "Garden irrigation",
 			"subType": "irrigation",
 			"pin": 6
+		},
+		{
+			"accessory": "GPIODevice",
+			"type": "StatelessProgrammableSwitch",
+			"name": "Push Button",
+			"pin": 4
 		}
 	],
 
@@ -98,6 +104,7 @@ Accessory type could be one of the following:
 * [GarageDoorOpener](#garagedooropener)
 * [LockMechanism](#lockmechanism)
 * [StatelessProgrammableSwitch](#programmableswitch)
+* [Doorbell](#programmableswitch)
 
 ## Pin Configuration
 
@@ -137,7 +144,7 @@ wPi pin number must be used in config file
 
 ## DigitalInput
 
-`ContactSensor`, `LeakSensor`, `SmokeSensor` and `CarbonDioxideSensor` types monitor a GPIO input and reports it as HomeKit Sensor.
+`ContactSensor`, `LeakSensor`, `SmokeSensor`, `CarbonDioxideSensor` and `CarbonMonoxideSensor` types monitor a GPIO input and reports it as HomeKit Sensor.
 
 ###### Configuration
 
@@ -149,7 +156,7 @@ wPi pin number must be used in config file
 
 ## DigitalOutput
 
-`Switch`, `Lightbulb`, `Outlet`, and `Valve` operates a GPIO output as ON/OFF.
+`Switch`, `Lightbulb`, `Outlet`, `Fan`, `Fanv2` and `Valve` operates a GPIO output as ON/OFF.
 
 ###### Configuration
 
@@ -170,7 +177,7 @@ wPi pin number must be used in config file
 
 ## ProgrammableSwitch
 
-`StatelessProgrammableSwitch` types monitor a GPIO input and reports it as HomeKit Stateless Programmable Switch.
+`StatelessProgrammableSwitch` or `Doorbell` types monitor a GPIO input and reports it as HomeKit Stateless Programmable Switch.
 
 ###### Configuration
 

@@ -35,15 +35,20 @@ function DeviceAccesory(log, config) {
 		case 'ContactSensor':
 		case 'LeakSensor':
 		case 'SmokeSensor':
-		case 'CarbonDioxideSensor': 
+		case 'CarbonDioxideSensor':
+		case 'CarbonMonoxideSensor':
 			this.device = new DigitalInput(this, log, config);
 		break;
 		case 'Switch':
 		case 'Lightbulb':
 		case 'Outlet':
+		case 'Fan':
+		case 'Fanv2':
 		case 'Faucet':
 		case 'IrrigationSystem':
 		case 'Valve':
+		case 'Speaker':
+		case 'Microphone':
 			this.device = new DigitalOutput(this, log, config);
 		break;
 		case 'MotionSensor':
@@ -106,6 +111,9 @@ function DigitalInput(accesory, log, config) {
 		break;
 		case 'CarbonDioxideSensor':
 			this.stateCharac = service.getCharacteristic(Characteristic.CarbonDioxideDetected);
+		break;
+		case 'CarbonMonoxideSensor':
+			this.stateCharac = service.getCharacteristic(Characteristic.CarbonMonoxideDetected);
 		break;
 		default:
 			 throw new Error("Type " + config.type + " not supported");
@@ -180,12 +188,19 @@ function DigitalOutput(accesory, log, config) {
 		case 'IrrigationSystem':
 			this.inputStateCharac = service.getCharacteristic(Characteristic.InUse);
 		case 'Faucet':
+		case 'Fanv2':
 			this.stateCharac = service.getCharacteristic(Characteristic.Active);
 		break;
+		case 'Outlet':
+			this.inputStateCharac = service.getCharacteristic(Characteristic.OutletInUse);
 		case 'Switch':
 		case 'Lightbulb':
-		case 'Outlet':
+		case 'Fan':
 			this.stateCharac = service.getCharacteristic(Characteristic.On);
+		break;
+		case 'Speaker':
+		case 'Microphone':
+			this.stateCharac = service.getCharacteristic(Characteristic.Mute);
 		break;
 		default:
 			 throw new Error("Type " + config.type + " not supported");
