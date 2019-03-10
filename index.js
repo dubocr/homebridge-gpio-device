@@ -373,13 +373,17 @@ function RollerShutter(accesory, log, config) {
 	this.openPin = config.pins[0];
 	this.closePin = config.pins[1];
 	this.restoreTarget = config.restoreTarget || false;
+	this.shiftDuration = (config.shiftDuration || 20) * 10; // Shift duration in ms for a move of 1%
 	this.pulseDuration = config.pulseDuration != null ? config.pulseDuration : 200;
+	this.openSensorPin = config.openSensorPin != null ? config.openSensorPin : null;
+	this.closeSensorPin = config.closeSensorPin != null ? config.closeSensorPin : null;
+	this.invertedInputs = config.invertedInputs || false;
+	
 	
 	this.HIGH = this.inverted ? wpi.LOW : wpi.HIGH;
  	this.LOW = this.inverted ? wpi.HIGH : wpi.LOW;
 	
 	this.service = new Service[config.type](config.name);
-	this.shiftDuration = (config.shiftDuration || 20) * 10; // Shift duration in ms for a move of 1%
 	this.shift = {id:null, start:0, value:0, target:0};
 	
 	wpi.pinMode(this.openPin, wpi.OUTPUT);
@@ -387,12 +391,44 @@ function RollerShutter(accesory, log, config) {
 	wpi.digitalWrite(this.openPin, this.LOW);
 	wpi.digitalWrite(this.closePin, this.LOW);
 	
-	this.posCharac = this.service.getCharacteristic(Characteristic.CurrentPosition)
+	this.stateCharac = this.service.getCharacteristic(Characteristic.PositionState)
+		.updateValue(Characteristic.PositionState.STOPPED);
+	this.positionCharac = this.service.getCharacteristic(Characteristic.CurrentPosition)
 		.updateValue(this.initPosition);
-	this.targetPosCharac = this.service.getCharacteristic(Characteristic.TargetPosition)
+	this.targetCharac = this.service.getCharacteristic(Characteristic.TargetPosition)
 		.on('set', this.setPosition.bind(this))
 		.updateValue(this.initPosition);
+	
+	if(this.openSensorPin !== null) {
+		wpi.pinMode(this.openSensorPin, wpi.INPUT);
+		wpi.pullUpDnControl(this.openSensorPin, wpi.PUD_DOWN);
+		wpi.wiringPiISR(this.openSensorPin, wpi.INT_EDGE_BOTH, this.stateChange.bind(this, this.openSensorPin));
 		
+		var state = wpi.digitalRead(this.openSensorPin);
+		if(this.invertedInputs)
+			state = !state;
+		this.positionCharac.updateValue(state ? 100 : 0);
+ 		this.targetCharac.updateValue(state ? 100 : 0);
+	}
+	
+	if(this.closeSensorPin !== null) {
+		wpi.pinMode(this.closeSensorPin, wpi.INPUT);
+		wpi.pullUpDnControl(this.closeSensorPin, wpi.PUD_DOWN);
+		wpi.wiringPiISR(this.closeSensorPin, wpi.INT_EDGE_BOTH, this.stateChange.bind(this, this.closeSensorPin));
+		
+		var state = wpi.digitalRead(this.closeSensorPin);
+		if(this.invertedInputs)
+			state = !state;
+		this.positionCharac.updateValue(state ? 0 : 100);
+ 		this.targetCharac.updateValue(state ? 0 : 100);
+	}
+	
+	// Init default state if no sensors
+	if (this.closeSensorPin === null && this.openSensorPin === null){
+		this.positionCharac.updateValue(this.initPosition);
+		this.targetCharac.updateValue(this.initPosition);
+	}
+	
 	accesory.addService(this.service);
 }
 
@@ -403,7 +439,7 @@ RollerShutter.prototype = {
  	
  	setPosition: function(value, callback) {
  		var that = this;
-		var currentPos = this.posCharac.value;
+		var currentPos = this.positionCharac.value;
 		
 		// Nothing to do
 		if(value == currentPos) {
@@ -419,7 +455,7 @@ RollerShutter.prototype = {
 				this.shift.id = null;
 				var moved = Math.round(diff / this.shiftDuration);
 				currentPos += Math.sign(this.shift.value) * moved;
-				this.posCharac.updateValue(this.minMax(currentPos));
+				this.positionCharac.updateValue(this.minMax(currentPos));
 			} else {
 				callback();
 				return;
@@ -445,10 +481,10 @@ RollerShutter.prototype = {
 		}
 		
 		if(this.restoreTarget) {
-			this.posCharac.updateValue(this.initPosition);
-			this.targetPosCharac.updateValue(this.initPosition);
+			this.positionCharac.updateValue(this.initPosition);
+			this.targetCharac.updateValue(this.initPosition);
 		} else {
-			this.posCharac.updateValue(this.shift.target);
+			this.positionCharac.updateValue(this.shift.target);
 		}
 		this.log("Shifting ends at "+this.shift.target);
 		this.shift.id = null;
@@ -476,7 +512,40 @@ RollerShutter.prototype = {
 				wpi.digitalWrite(pin, this.LOW);
 			}
 		}
-	}
+	},
+	
+	stateChange: function(pin, delta) {
+ 		if(this.unbouncingID == null) {
+			this.unbouncingID = setTimeout(function() {
+				this.unbouncingID = null;
+				
+				var state = pin ? wpi.digitalRead(pin) : 0;
+				if(this.invertedInputs)
+					state = !state;
+				if(pin === this.closeSensorPin) {
+					if(state) {
+						clearTimeout(this.shift.id);
+						this.shift.id = null;
+						this.targetCharac.updateValue(0);
+						this.positionCharac.updateValue(0);
+					}
+					this.stateCharac.updateValue(state ? Characteristic.PositionState.STOPPED : Characteristic.PositionState.INCREASING);
+				} else if(pin === this.openSensorPin) {
+					if(state) {
+						clearTimeout(this.shift.id);
+						this.shift.id = null;
+						this.targetCharac.updateValue(100);
+						this.positionCharac.updateValue(100);
+					}
+					this.stateCharac.updateValue(state ? Characteristic.PositionState.STOPPED : Characteristic.PositionState.DECREASING);
+				} else {
+					this.targetCharac.updateValue(this.initState);
+					this.positionCharac.updateValue(this.initState);
+					this.stateCharac.updateValue(Characteristic.PositionState.STOPPED);
+				}
+			}.bind(this), 500);
+		}
+ 	}
 }
 
 function GarageDoor(accesory, log, config) {

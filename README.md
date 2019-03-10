@@ -193,10 +193,13 @@ When operating, the GPIO is turned on for 200ms to simulate a button pression on
 | Parameter                  | Type				| Default 	| Note																																									|
 |----------------------------|------------------|-----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `pins`               		 | Integer[2]		| N/A	  	| mandatory, output pins numbers to trigger (pins[0] : open, pins[1] : close)																							|
-| `shiftDuration`            | Integer (sec)	| 20		| optional, duration of a shift (close->open or open->close) used to compute intermediate position																		|
-| `initPosition`			 | Integer (%)		| 0			| optional, default shutter position at homebridge startup to compensate absence of state feedback, recommanded to ensure open/close scenarios after unexptected restart: 99% |
 | `inverted`               	 | Boolean			| false		| optional, reverse the behaviour of the GPIO pin (pulse becomes HIGH->LOW->HIGH)																						|
+| `initPosition`			 | Integer (%)		| 0			| optional, default shutter position at homebridge startup to compensate absence of state feedback, recommanded to ensure open/close scenarios after unexptected restart: 99% |
+| `shiftDuration`            | Integer (sec)	| 20		| optional, duration of a shift (close->open or open->close) used to compute intermediate position																		|
 | `pulseDuration`          	 | Integer			| 200		| optional, duration of the pin pulse. (0: deactivate, pin active during all shifting)																					|
+| `openSensorPin`            | Integer			| N/A		| optional, input pin number for open sensor (HIGH: open)																												|
+| `closeSensorPin`           | Integer			| N/A		| optional, input pin number for close sensor (HIGH: close)																												|
+| `invertedInputs`         	 | Boolean			| false		| optional, reverse the behaviour of the GPIO input pins (detect open/close on LOW state)																				|
 
 ## GarageDoorOpener
 
@@ -210,11 +213,11 @@ When operating, the GPIO is turned on for 200ms.
 | `pin`               		 | Integer			| N/A		| optional, output pin number for toggle opener (first pulse: open, second pulse: close)																				|
 | `pins`               		 | Integer[2]		| N/A		| optional, output pins numbers for open/close opener (pins[0] : open, pins[1] : close)																					|
 | `inverted`               	 | Boolean			| false		| optional, reverse the behaviour of the GPIO pin (pulse becomes HIGH->LOW->HIGH)																						|
+| `shiftDuration`          	 | Integer			| 5			| optional, duration of the door shifting (seconds). Emulate transition if no sensor or only one is provided.															|
+| `pulseDuration`          	 | Integer			| 200		| optional, duration of the pin pulse.																																	|
 | `openSensorPin`            | Integer			| N/A		| optional, input pin number for open sensor (HIGH: open)																												|
 | `closeSensorPin`           | Integer			| N/A		| optional, input pin number for close sensor (HIGH: close)																												|
 | `invertedInputs`         	 | Boolean			| false		| optional, reverse the behaviour of the GPIO input pins (detect open/close on LOW state)																				|
-| `pulseDuration`          	 | Integer			| 200		| optional, duration of the pin pulse.																																	|
-| `shiftDuration`          	 | Integer			| 5			| optional, duration of the door shifting (seconds). Emulate transition if no sensor or only one is provided.															|
 | `autoClose`	          	 | Boolean			| false		| optional, emulate cyclic door if no sensor is provided. Reset to close state after 2x`shiftDuration` seconds.															|
 
 ## LockMechanism
