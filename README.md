@@ -92,10 +92,12 @@ Accessory type could be one of the following:
 * [Outlet](#digitaloutput)
 * [Valve](#digitaloutput)
 * [MotionSensor](#motionsensor)
-* [Window](#windowwindowcovering)
-* [WindowCovering](#windowwindowcovering)
+* [Window](#positionopener)
+* [WindowCovering](#positionopener)
+* [Door](#positionopener)
 * [GarageDoorOpener](#garagedooropener)
 * [LockMechanism](#lockmechanism)
+* [StatelessProgrammableSwitch](#programmableswitch)
 
 ## Pin Configuration
 
@@ -145,7 +147,6 @@ wPi pin number must be used in config file
 | `inverted`               	 | Boolean			| false		| optional, reverse the behaviour of the GPIO pin (LOW : sensor triggered, HIGH : sensor not triggered)																	|
 | `postpone`               	 | Integer			| 100		| optional, delay (ms) between 2 state change to avoid bouncing																											|
 
-
 ## DigitalOutput
 
 `Switch`, `Lightbulb`, `Outlet`, and `Valve` operates a GPIO output as ON/OFF.
@@ -167,6 +168,20 @@ wPi pin number must be used in config file
 | `subType`               	 | String			| "generic"	| optional, valve widget subtype like "irrigation", "shower" or "faucet"																								|
 | `inputPin`               	 | Integer			| N/A		| optional, input pin number used as "InUse" characteristic for Valve widget																							|
 
+## ProgrammableSwitch
+
+`StatelessProgrammableSwitch` types monitor a GPIO input and reports it as HomeKit Stateless Programmable Switch.
+
+###### Configuration
+
+| Parameter                  | Type				| Default 	| Note																																									|
+|----------------------------|------------------|-----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `pin`               		 | Integer			| N/A	  	| mandatory, input pin number to monitor (HIGH : sensor triggered, LOW : sensor not triggered)																			|
+| `inverted`               	 | Boolean			| false		| optional, reverse the behaviour of the GPIO pin (LOW : sensor triggered, HIGH : sensor not triggered)																	|
+| `shortPress`             	 | Integer			| 500		| optional, delay (ms) of a short press (double press will be detected if done in this delay)																			|
+| `longPress`              	 | Integer			| 2000		| optional, delay (ms) of a long press																																	|
+| `postpone`               	 | Integer			| 100		| optional, delay (ms) between 2 state change to avoid bouncing																											|
+
 ## MotionSensor
 
 `MotionSensor` monitor a GPIO input and reports it as HomeKit MotionSensor.
@@ -183,9 +198,9 @@ An optional OccupancySensor can be configured with a timeout.
 | `occupancy.timeout`        | Integer (sec)	| 60		| optional, ocupancy timeout in sec after motion detection																												|
 | `inverted`               	 | Boolean			| false		| optional, reverse the behaviour of the GPIO pin (HIGH : motion not detected, LOW : motion detected)																	|
 
-## Window/WindowCovering
+## PositionOpener
 
-`Window` or `WindowCovering` controls 2 GPIO outputs plugged to a remote control.
+`Window`, `WindowCovering` or `Door` controls 2 GPIO outputs plugged to a remote control.
 When operating, the GPIO is turned on for 200ms to simulate a button pression on the remote control.
 
 ###### Configuration

@@ -49,6 +49,7 @@ function DeviceAccesory(log, config) {
 		case 'MotionSensor':
 			this.device = new PIRSensor(this, log, config);
 		break;
+		case 'Door':
 		case 'Window':
 		case 'WindowCovering':
 			this.device = new RollerShutter(this, log, config);
@@ -58,6 +59,9 @@ function DeviceAccesory(log, config) {
 		break;
 		case 'LockMechanism':
 			this.device = new LockMechanism(this, log, config);
+		break;
+		case 'StatelessProgrammableSwitch':
+			this.device = new ProgrammableSwitch(this, log, config);
 		break;
 		default:
 			throw new Error("Unknown 'type' parameter : " + config.type);
@@ -713,5 +717,67 @@ GarageDoor.prototype = {
 		} else {
 			callback(null, Characteristic.CurrentDoorState.CLOSED);
 		}
+ 	}
+}
+
+function ProgrammableSwitch(accesory, log, config) {
+	this.log = log;
+	this.pin = config.pin;
+	this.inverted = config.inverted || false;
+	this.postpone = config.postpone || 100;
+	this.shortPress = config.shortPress || 500;
+	this.longPress = config.longPress || 2000;
+	
+	this.HIGH = this.inverted ? wpi.LOW : wpi.HIGH;
+ 	this.LOW = this.inverted ? wpi.HIGH : wpi.LOW;
+ 	
+ 	this.counter = 0;
+ 	this.start = null;
+	
+	var service = new Service[config.type](config.name);
+	
+	this.eventCharac = service.getCharacteristic(Characteristic.ProgrammableSwitchEvent);
+	
+	wpi.pinMode(this.pin, wpi.INPUT);
+	wpi.pullUpDnControl(this.pin, wpi.PUD_DOWN);
+	wpi.wiringPiISR(this.pin, wpi.INT_EDGE_BOTH, this.stateChange.bind(this));
+		
+	accesory.addService(service);
+}
+
+ProgrammableSwitch.prototype = { 	
+ 	stateChange: function(delta) {
+ 		if(this.postponeId == null) {
+			this.postponeId = setTimeout(function() {
+				this.postponeId = null;
+				var state = wpi.digitalRead(this.pin);
+				if(this.inverted)
+					state = !state;
+				if(state) {
+					this.longPressPending = setTimeout(function() {
+						this.eventCharac.updateValue(Characteristic.ProgrammableSwitchEvent.LONG_PRESS);
+						this.longPressPending = null;
+						this.counter = 0;
+					}.bind(this), this.longPress);
+				} else {
+					this.counter++;
+					if(this.longPressPending) {
+						clearTimeout(this.longPressPending);
+						if(this.pressPending) {
+							clearTimeout(this.pressPending);
+							this.eventCharac.updateValue(Characteristic.ProgrammableSwitchEvent.DOUBLE_PRESS);
+							this.pressPending = null;
+							this.counter = 0;
+						} else {
+							this.pressPending = setTimeout(function() {
+								this.eventCharac.updateValue(Characteristic.ProgrammableSwitchEvent.SINGLE_PRESS);
+								this.pressPending = null;
+								this.counter = 0;
+							}.bind(this), this.shortPress);
+						}
+					}
+				}
+			}.bind(this), this.postpone);
+ 		}
  	}
 }
