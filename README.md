@@ -144,7 +144,7 @@ wPi pin number must be used in config file
 
 ## DigitalInput
 
-`ContactSensor`, `LeakSensor`, `SmokeSensor`, `CarbonDioxideSensor` and `CarbonMonoxideSensor` types monitor a GPIO input and reports it as HomeKit Sensor.
+`ContactSensor`, `MotionSensor`, `LeakSensor`, `SmokeSensor`, `CarbonDioxideSensor` and `CarbonMonoxideSensor` types monitor a GPIO input and reports it as HomeKit Sensor.
 
 ###### Configuration
 
@@ -153,6 +153,17 @@ wPi pin number must be used in config file
 | `pin`               		 | Integer			| N/A	  	| mandatory, input pin number to monitor (HIGH : sensor triggered, LOW : sensor not triggered)																			|
 | `inverted`               	 | Boolean			| false		| optional, reverse the behaviour of the GPIO pin (LOW : sensor triggered, HIGH : sensor not triggered)																	|
 | `postpone`               	 | Integer			| 100		| optional, delay (ms) between 2 state change to avoid bouncing																											|
+
+###### MotionSensor additional parameters
+
+`MotionSensor` has optional OccupancySensor wich can be configured with a timeout.
+Could be used with this [PIR Sensor](http://snootlab.com/adafruit/285-capteur-de-presence-pir.html).
+
+| Parameter                  | Type				| Default 	| Note																																									|
+|----------------------------|------------------|-----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `occupancy`            	 | {}				| null		| optional, activate an occupancy sensor with a timeout after motion detection																							|
+| `occupancy.name`           | String			| N/A		| mandatory, occupancy sensor name																																		|
+| `occupancy.timeout`        | Integer (sec)	| 60		| optional, ocupancy timeout in sec after motion detection																												|
 
 ## DigitalOutput
 
@@ -188,22 +199,6 @@ wPi pin number must be used in config file
 | `shortPress`             	 | Integer			| 500		| optional, delay (ms) of a short press (double press will be detected if done in this delay)																			|
 | `longPress`              	 | Integer			| 2000		| optional, delay (ms) of a long press																																	|
 | `postpone`               	 | Integer			| 100		| optional, delay (ms) between 2 state change to avoid bouncing																											|
-
-## MotionSensor
-
-`MotionSensor` monitor a GPIO input and reports it as HomeKit MotionSensor.
-Could be used with this [PIR Sensor](http://snootlab.com/adafruit/285-capteur-de-presence-pir.html).
-An optional OccupancySensor can be configured with a timeout.
-
-###### Configuration
-
-| Parameter                  | Type				| Default 	| Note																																									|
-|----------------------------|------------------|-----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `pin`               		 | Integer			| N/A		| mandatory, input pin number to monitor (HIGH : motion detected, LOW : motion not detected)																			|
-| `occupancy`            	 | {}				| null		| optional, activate an occupancy sensor with a timeout after motion detection																							|
-| `occupancy.name`           | String			| N/A		| mandatory, occupancy sensor name																																		|
-| `occupancy.timeout`        | Integer (sec)	| 60		| optional, ocupancy timeout in sec after motion detection																												|
-| `inverted`               	 | Boolean			| false		| optional, reverse the behaviour of the GPIO pin (HIGH : motion not detected, LOW : motion detected)																	|
 
 ## PositionOpener
 

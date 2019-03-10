@@ -33,6 +33,7 @@ function DeviceAccesory(log, config) {
 	wpi.setup('wpi');
 	switch(config.type) {
 		case 'ContactSensor':
+		case 'MotionSensor':
 		case 'LeakSensor':
 		case 'SmokeSensor':
 		case 'CarbonDioxideSensor':
@@ -50,9 +51,6 @@ function DeviceAccesory(log, config) {
 		case 'Speaker':
 		case 'Microphone':
 			this.device = new DigitalOutput(this, log, config);
-		break;
-		case 'MotionSensor':
-			this.device = new PIRSensor(this, log, config);
 		break;
 		case 'Door':
 		case 'Window':
@@ -103,6 +101,9 @@ function DigitalInput(accesory, log, config) {
 		case 'ContactSensor':
 			this.stateCharac = service.getCharacteristic(Characteristic.ContactSensorState);
 		break;
+		case 'MotionSensor':
+			this.stateCharac = service.getCharacteristic(Characteristic.MotionDetected);
+		break;
 		case 'LeakSensor':
 			this.stateCharac = service.getCharacteristic(Characteristic.LeakDetected);
 		break;
@@ -130,34 +131,59 @@ function DigitalInput(accesory, log, config) {
 		wpi.wiringPiISR(this.pin, wpi.INT_EDGE_BOTH, this.stateChange.bind(this));
 		
 	accesory.addService(service);
+	
+	/* Occupancy sensor for MotionSensor */
+	if(config.occupancy) {
+		if(!config.occupancy.name) throw new Error("'name' parameter is missing for occupancy");
+		this.occupancy = new Service.OccupancySensor(config.occupancy.name);
+		this.occupancyTimeout = (config.occupancy.timeout || 60) * 1000;
+		accesory.addService(this.occupancy);
+	}
 }
 
 DigitalInput.prototype = { 	
  	stateChange: function(delta) {
  		if(this.postponeId == null) {
- 			var that = this;
 			this.postponeId = setTimeout(function() {
-				that.postponeId = null;
-				var state = wpi.digitalRead(that.pin);
-				that.stateCharac.updateValue(state == that.HIGH ? that.ON_STATE : that.OFF_STATE);
-			}, this.postpone);
+				this.postponeId = null;
+				var state = wpi.digitalRead(this.pin);
+				this.stateCharac.updateValue(state == this.HIGH ? this.ON_STATE : this.OFF_STATE);
+				if(this.occupancy) {
+					this.occupancyUpdate(state);
+				}
+			}.bind(this), this.postpone);
  		}
  	},
  	
  	toggleState: function(delta) {
  		if(this.postponeId == null) {
- 			var that = this;
 			this.postponeId = setTimeout(function() {
-				that.postponeId = null;
-				var state = wpi.digitalRead(that.pin);
-				that.stateCharac.updateValue(that.stateCharac.value == that.ON_STATE ? that.OFF_STATE : that.ON_STATE);
-			}, this.postpone);
+				this.postponeId = null;
+				var state = wpi.digitalRead(this.pin);
+				this.stateCharac.updateValue(this.stateCharac.value == this.ON_STATE ? this.OFF_STATE : this.ON_STATE);
+			}.bind(this), this.postpone);
  		}
  	},
  	
  	getState: function(callback) {
  		var state = wpi.digitalRead(this.pin);
  		callback(null, state == this.HIGH ? this.ON_STATE : this.OFF_STATE);
+	},
+	
+	occupancyUpdate: function(state) {
+		var characteristic = this.occupancy.getCharacteristic(Characteristic.OccupancyDetected);
+		if(state == this.HIGH) {
+			characteristic.updateValue(Characteristic.OccupancyDetected.OCCUPANCY_DETECTED);
+			if(this.occupancyTimeoutID != null) {
+				clearTimeout(this.occupancyTimeoutID);
+				this.occupancyTimeoutID = null;
+			}
+		} else if(characteristic.value == Characteristic.OccupancyDetected.OCCUPANCY_DETECTED) { // On motion ends
+			this.occupancyTimeoutID = setTimeout(function(){
+				characteristic.updateValue(Characteristic.OccupancyDetected.OCCUPANCY_NOT_DETECTED);
+				this.occupancyTimeoutID = null;
+			}.bind(this), this.occupancyTimeout);
+		}
 	}
 }
 
@@ -310,7 +336,9 @@ LockMechanism.prototype = {
  			wpi.digitalWrite(this.pin, this.HIGH);
  			callback();
  			if(this.inputPin === null) {
- 				this.state.updateValue(Characteristic.LockCurrentState.UNSECURED);
+ 				setTimeout(function(){
+ 					this.state.updateValue(Characteristic.LockCurrentState.UNSECURED);
+ 				}.bind(this), 1000);
  			}
  			if(this.duration) {
 				setTimeout(function(){
@@ -318,7 +346,7 @@ LockMechanism.prototype = {
 					wpi.digitalWrite(this.pin, this.LOW);
 					this.target.updateValue(Characteristic.LockTargetState.SECURED);
 					if(this.inputPin === null) {
-						this.state.updateValue(Characteristic.LockCurrentState.SECURED);
+ 						this.state.updateValue(Characteristic.LockCurrentState.SECURED);
 					}
 				}.bind(this), this.duration * 1000);
  			}
@@ -327,7 +355,9 @@ LockMechanism.prototype = {
  			wpi.digitalWrite(this.pin, this.LOW);
  			callback();
  			if(this.inputPin === null) {
- 				this.state.updateValue(Characteristic.LockCurrentState.SECURED);
+ 				setTimeout(function(){
+ 					this.state.updateValue(Characteristic.LockCurrentState.SECURED);
+ 				}.bind(this), 1000);
  			}
  		}
 	},
@@ -347,65 +377,6 @@ LockMechanism.prototype = {
 			}.bind(this), this.postpone);
 		}
  	}
-}
-
-function PIRSensor(accesory, log, config) {
-	this.log = log;
-	this.pin = config.pin;
-	this.inverted = config.inverted || false;
-	
-	this.service = new Service[config.type](config.name);
-	this.service.getCharacteristic(Characteristic.MotionDetected)
-		.on('get', this.getState.bind(this));
-		
-	wpi.pinMode(this.pin, wpi.INPUT);
-	wpi.pullUpDnControl(this.pin, wpi.PUD_DOWN);
-	wpi.wiringPiISR(this.pin, wpi.INT_EDGE_BOTH, this.stateChange.bind(this));
-	
-	accesory.addService(this.service);
-	if(config.occupancy) {
-		if(!config.occupancy.name) throw new Error("'name' parameter is missing for occupancy");
-		this.occupancy = new Service.OccupancySensor(config.occupancy.name);
-		this.occupancyTimeout = (config.occupancy.timeout || 60) * 1000;
-		accesory.addService(this.occupancy);
-	}
-}
-
-PIRSensor.prototype = {
-  	stateChange: function(delta) {
- 		var state = wpi.digitalRead(this.pin);
- 		if(this.inverted)
- 			state = !state;
-		this.service.getCharacteristic(Characteristic.MotionDetected).updateValue(state ? 1 : 0);
-		if(this.occupancy)
-			this.occupancyUpdate(state);
- 	},
- 	
- 	getState: function(callback) {
- 		var state = wpi.digitalRead(this.pin);
- 		if(this.inverted)
- 			state = !state;
- 		callback(null, state ? 1 : 0);
-	},
- 	
- 	occupancyUpdate: function(state) {
- 		var that = this;
-    	var characteristic = this.occupancy.getCharacteristic(Characteristic.OccupancyDetected);
-    	if(state) {
-			characteristic.updateValue(Characteristic.OccupancyDetected.OCCUPANCY_DETECTED);
-			if(this.occupancyTimeoutID != null) {
-				clearTimeout(this.occupancyTimeoutID);
-				this.occupancyTimeoutID = null;
-			}
-			this.presence = true;
-		} else if(characteristic.value == Characteristic.OccupancyDetected.OCCUPANCY_DETECTED) { // On motion ends
-			var that = this;
-			this.occupancyTimeoutID = setTimeout(function(){
-				characteristic.updateValue(Characteristic.OccupancyDetected.OCCUPANCY_NOT_DETECTED);
-				that.occupancyTimeoutID = null;
-			}, this.occupancyTimeout);
-		}
-  }
 }
 
 function RollerShutter(accesory, log, config) {
