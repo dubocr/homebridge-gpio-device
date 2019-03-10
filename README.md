@@ -209,10 +209,12 @@ When operating, the GPIO is turned on for 200ms.
 |----------------------------|------------------|-----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `pin`               		 | Integer			| N/A		| optional, output pin number for toggle opener (first pulse: open, second pulse: close)																				|
 | `pins`               		 | Integer[2]		| N/A		| optional, output pins numbers for open/close opener (pins[0] : open, pins[1] : close)																					|
-| `sensorPin`                | Integer			| N/A		| optional, input pin numbers for open/close sensor (LOW: closed, HIGH: open)																							|
 | `inverted`               	 | Boolean			| false		| optional, reverse the behaviour of the GPIO pin (pulse becomes HIGH->LOW->HIGH)																						|
+| `openSensorPin`            | Integer			| N/A		| optional, input pin number for open sensor (HIGH: open)																							|
+| `closeSensorPin`           | Integer			| N/A		| optional, input pin number for close sensor (HIGH: close)																							|
+| `invertedInputs`         	 | Boolean			| false		| optional, reverse the behaviour of the GPIO input pins (detect open/close on LOW state)																						|
 | `pulseDuration`          	 | Integer			| 200		| optional, duration of the pin pulse.																																	|
-| `cycleDuration`          	 | Integer			| 0			| optional, duration of the door cycle (closed state automatically restored after this delay).																			|
+| `cycleDuration`          	 | Integer			| 0			| optional, duration of the door shifting. Emulate transition if no sensor or only one is provided.																			|
 
 ## LockMechanism
 
