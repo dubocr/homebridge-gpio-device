@@ -89,8 +89,8 @@ function DigitalInput(accesory, log, config) {
 	this.toggle = config.toggle || false;
 	this.postpone = config.postpone || 100;
 	
-	this.HIGH = this.inverted ? wpi.LOW : wpi.HIGH;
- 	this.LOW = this.inverted ? wpi.HIGH : wpi.LOW;
+	this.INPUT_ACTIVE = this.inverted ? wpi.HIGH : wpi.LOW;
+ 	this.INPUT_INACTIVE = this.inverted ? wpi.LOW : wpi.HIGH;
 	
 	this.ON_STATE = 1;
 	this.OFF_STATE = 0;
@@ -124,9 +124,9 @@ function DigitalInput(accesory, log, config) {
 		.on('get', this.getState.bind(this));
 	
 	wpi.pinMode(this.pin, wpi.INPUT);
-	wpi.pullUpDnControl(this.pin, wpi.PUD_DOWN);
+	wpi.pullUpDnControl(this.pin, wpi.PUD_UP);
 	if(this.toggle)
-		wpi.wiringPiISR(this.pin, this.inverted ? wpi.INT_EDGE_FALLING : wpi.INT_EDGE_RISING, this.toggleState.bind(this));
+		wpi.wiringPiISR(this.pin, wpi.INT_EDGE_FALLING, this.toggleState.bind(this)); // Falling because pin are pulled-up (so triggers when became low)
 	else
 		wpi.wiringPiISR(this.pin, wpi.INT_EDGE_BOTH, this.stateChange.bind(this));
 		
@@ -147,7 +147,7 @@ DigitalInput.prototype = {
 			this.postponeId = setTimeout(function() {
 				this.postponeId = null;
 				var state = wpi.digitalRead(this.pin);
-				this.stateCharac.updateValue(state == this.HIGH ? this.ON_STATE : this.OFF_STATE);
+				this.stateCharac.updateValue(state == this.INPUT_ACTIVE ? this.ON_STATE : this.OFF_STATE);
 				if(this.occupancy) {
 					this.occupancyUpdate(state);
 				}
@@ -167,12 +167,12 @@ DigitalInput.prototype = {
  	
  	getState: function(callback) {
  		var state = wpi.digitalRead(this.pin);
- 		callback(null, state == this.HIGH ? this.ON_STATE : this.OFF_STATE);
+ 		callback(null, state == this.INPUT_ACTIVE ? this.ON_STATE : this.OFF_STATE);
 	},
 	
 	occupancyUpdate: function(state) {
 		var characteristic = this.occupancy.getCharacteristic(Characteristic.OccupancyDetected);
-		if(state == this.HIGH) {
+		if(state == this.INPUT_ACTIVE) {
 			characteristic.updateValue(Characteristic.OccupancyDetected.OCCUPANCY_DETECTED);
 			if(this.occupancyTimeoutID != null) {
 				clearTimeout(this.occupancyTimeoutID);
@@ -193,17 +193,23 @@ function DigitalOutput(accesory, log, config) {
 	this.inverted = config.inverted || false;
 	this.duration = config.duration || false;
 	this.initState = config.initState || 0;
-	this.inputPin = config.inputPin || false;
+	this.inputPin = config.inputPin !== undefined ? config.inputPin : null;
 	
-	this.HIGH = this.inverted ? wpi.LOW : wpi.HIGH;
- 	this.LOW = this.inverted ? wpi.HIGH : wpi.LOW;
-		
+	this.OUTPUT_ACTIVE = this.inverted ? wpi.LOW : wpi.HIGH;
+	this.OUTPUT_INACTIVE = this.inverted ? wpi.HIGH : wpi.LOW;
+	 
+	this.INPUT_ACTIVE = wpi.LOW;
+ 	this.INPUT_INACTIVE = wpi.HIGH;
+	
+	this.ON_STATE = 1;
+	this.OFF_STATE = 0;
+
 	wpi.pinMode(this.pin, wpi.OUTPUT);
-	wpi.digitalWrite(this.pin, this.initState ? this.HIGH : this.LOW);
+	wpi.digitalWrite(this.pin, this.initState ? this.OUTPUT_ACTIVE : this.OUTPUT_INACTIVE);
 	
 	if(this.inputPin) {
 		wpi.pinMode(this.inputPin, wpi.INPUT);
-		wpi.pullUpDnControl(this.inputPin, wpi.PUD_DOWN);
+		wpi.pullUpDnControl(this.inputPin, wpi.PUD_UP);
 		wpi.wiringPiISR(this.inputPin, wpi.INT_EDGE_BOTH, this.stateChange.bind(this));
 	}
 	
@@ -259,20 +265,19 @@ function DigitalOutput(accesory, log, config) {
 
 DigitalOutput.prototype = {
 	setState: function(value, callback) {
-  		var that = this;
- 		wpi.digitalWrite(this.pin, value ? this.HIGH : this.LOW);
+ 		wpi.digitalWrite(this.pin, value ? this.OUTPUT_ACTIVE : this.OUTPUT_INACTIVE);
  		if(this.duration && this.durationTimeoutID == null) {
 			this.durationTimeoutID = setTimeout(function(){
-				that.durationTimeoutID = null;
-				wpi.digitalWrite(that.pin, that.initState ? that.HIGH : that.LOW);
-				that.stateCharac.updateValue(that.initState);
-				if(that.inputStateCharac && !that.inputPin) {
-					that.inputStateCharac.updateValue(that.initState);
+				this.durationTimeoutID = null;
+				wpi.digitalWrite(this.pin, this.initState ? this.OUTPUT_ACTIVE : this.OUTPUT_INACTIVE);
+				this.stateCharac.updateValue(this.initState);
+				if(this.inputStateCharac && this.inputPin === null) {
+					this.inputStateCharac.updateValue(this.initState);
 				}
-			}, this.duration * 1000);
+			}.bind(this), this.duration * 1000);
 		}
 		
-		if(this.inputStateCharac && !this.inputPin) {
+		if(this.inputStateCharac && this.inputPin === null) {
 			this.inputStateCharac.updateValue(value);
 		}
  		callback();
@@ -280,16 +285,16 @@ DigitalOutput.prototype = {
 	
 	getState: function(callback) {
 		var state = wpi.digitalRead(this.pin);
- 		callback(null, state == this.HIGH ? 1 : 0);
+ 		callback(null, state == this.OUTPUT_ACTIVE ? this.ON_STATE : this.OFF_STATE);
 	},
 	
 	stateChange: function(delta) {
  		var state = wpi.digitalRead(this.inputPin);
 		if(this.inputStateCharac) {
-			this.inputStateCharac.updateValue(state == this.HIGH ? 1 : 0);
+			this.inputStateCharac.updateValue(state == this.OUTPUT_ACTIVE ? this.ON_STATE : this.OFF_STATE);
 		} else {
-			wpi.digitalWrite(this.pin, state);
-			this.stateCharac.updateValue(state == this.HIGH ? 1 : 0);
+			wpi.digitalWrite(this.pin, state == this.OUTPUT_ACTIVE ? this.OUTPUT_ACTIVE : this.OUTPUT_INACTIVE);
+			this.stateCharac.updateValue(state == this.OUTPUT_ACTIVE ? this.ON_STATE : this.OFF_STATE);
 		}
  	}
 }
@@ -299,18 +304,18 @@ function LockMechanism(accesory, log, config) {
 	this.pin = config.pin;
 	this.inverted = config.inverted || false;
 	this.duration = config.duration || false;
-	this.inputPin = config.inputPin != null ? config.inputPin : null;
+	this.inputPin = config.inputPin !== undefined ? config.inputPin : null;
 	this.postpone = config.postpone || 100;
 	
-	this.HIGH = this.inverted ? wpi.LOW : wpi.HIGH;
- 	this.LOW = this.inverted ? wpi.HIGH : wpi.LOW;
+	this.OUTPUT_ACTIVE = this.inverted ? wpi.LOW : wpi.HIGH;
+ 	this.OUTPUT_INACTIVE = this.inverted ? wpi.HIGH : wpi.LOW;
  	
 	wpi.pinMode(this.pin, wpi.OUTPUT);
-	wpi.digitalWrite(this.pin, this.inverted ? this.HIGH : this.LOW);
+	wpi.digitalWrite(this.pin, this.OUTPUT_INACTIVE);
  	
  	if(this.inputPin) {
 		wpi.pinMode(this.inputPin, wpi.INPUT);
-		wpi.pullUpDnControl(this.inputPin, wpi.PUD_DOWN);
+		wpi.pullUpDnControl(this.inputPin, wpi.PUD_UP);
 		wpi.wiringPiISR(this.inputPin, wpi.INT_EDGE_BOTH, this.stateChange.bind(this));
 	}
 	
@@ -333,7 +338,7 @@ LockMechanism.prototype = {
   	setLockState: function(value, callback) {
  		if(value == Characteristic.LockTargetState.UNSECURED) {
 			this.log("Open LockMechanism on PIN: " + this.pin);
- 			wpi.digitalWrite(this.pin, this.HIGH);
+ 			wpi.digitalWrite(this.pin, this.OUTPUT_ACTIVE);
  			callback();
  			if(this.inputPin === null) {
  				setTimeout(function(){
@@ -343,7 +348,7 @@ LockMechanism.prototype = {
  			if(this.duration) {
 				setTimeout(function(){
 					this.log("Close LockMechanism on PIN: " + this.pin);
-					wpi.digitalWrite(this.pin, this.LOW);
+					wpi.digitalWrite(this.pin, this.OUTPUT_INACTIVE);
 					this.target.updateValue(Characteristic.LockTargetState.SECURED);
 					if(this.inputPin === null) {
  						this.state.updateValue(Characteristic.LockCurrentState.SECURED);
@@ -352,7 +357,7 @@ LockMechanism.prototype = {
  			}
  		} else {
 			this.log("Close LockMechanism on PIN: " + this.pin);
- 			wpi.digitalWrite(this.pin, this.LOW);
+ 			wpi.digitalWrite(this.pin, this.OUTPUT_INACTIVE);
  			callback();
  			if(this.inputPin === null) {
  				setTimeout(function(){
@@ -364,7 +369,7 @@ LockMechanism.prototype = {
 	
 	getLockState: function(callback) {
 		var state = wpi.digitalRead(this.pin);
- 		callback(null, state == this.HIGH ? Characteristic.LockCurrentState.UNSECURED : Characteristic.LockCurrentState.SECURED);
+ 		callback(null, state == this.OUTPUT_ACTIVE ? Characteristic.LockCurrentState.UNSECURED : Characteristic.LockCurrentState.SECURED);
 	},
 	
 	stateChange: function(delta) {
@@ -372,8 +377,8 @@ LockMechanism.prototype = {
 			this.unbouncingID = setTimeout(function() {
 				this.unbouncingID = null;
 				var state = wpi.digitalRead(this.inputPin);
-				this.state.updateValue(state == this.HIGH ? Characteristic.LockCurrentState.UNSECURED : Characteristic.LockCurrentState.SECURED);
- 				this.target.updateValue(state == this.HIGH ? Characteristic.LockTargetState.UNSECURED : Characteristic.LockTargetState.SECURED);
+				this.state.updateValue(state == this.OUTPUT_ACTIVE ? Characteristic.LockCurrentState.UNSECURED : Characteristic.LockCurrentState.SECURED);
+ 				this.target.updateValue(state == this.OUTPUT_ACTIVE ? Characteristic.LockTargetState.UNSECURED : Characteristic.LockTargetState.SECURED);
 			}.bind(this), this.postpone);
 		}
  	}
@@ -390,25 +395,25 @@ function RollerShutter(accesory, log, config) {
 	this.closePin = config.pins[1];
 	this.restoreTarget = config.restoreTarget || false;
 	this.shiftDuration = (config.shiftDuration || 20) * 10; // Shift duration in ms for a move of 1%
-	this.pulseDuration = config.pulseDuration != null ? config.pulseDuration : 200;
-	this.openSensorPin = config.openSensorPin != null ? config.openSensorPin : null;
-	this.closeSensorPin = config.closeSensorPin != null ? config.closeSensorPin : null;
+	this.pulseDuration = config.pulseDuration !== undefined ? config.pulseDuration : 200;
+	this.openSensorPin = config.openSensorPin !== undefined ? config.openSensorPin : null;
+	this.closeSensorPin = config.closeSensorPin !== undefined ? config.closeSensorPin : null;
 	this.invertedInputs = config.invertedInputs || false;
 	this.postpone = config.postpone || 100;
 	
-	this.HIGH = this.inverted ? wpi.LOW : wpi.HIGH;
- 	this.LOW = this.inverted ? wpi.HIGH : wpi.LOW;
+	this.OUTPUT_ACTIVE = this.inverted ? wpi.LOW : wpi.HIGH;
+ 	this.OUTPUT_INACTIVE = this.inverted ? wpi.HIGH : wpi.LOW;
 	
-	this.INPUT_ACTIVE = this.invertedInputs ? wpi.LOW : wpi.HIGH;
-	this.INPUT_INACTIVE = this.invertedInputs ? wpi.HIGH : wpi.LOW;
+	this.INPUT_ACTIVE = this.invertedInputs ? wpi.HIGH : wpi.LOW;
+ 	this.INPUT_INACTIVE = this.invertedInputs ? wpi.LOW : wpi.HIGH;
 	
 	this.service = new Service[config.type](config.name);
 	this.shift = {id:null, start:0, value:0, target:0};
 	
 	wpi.pinMode(this.openPin, wpi.OUTPUT);
 	wpi.pinMode(this.closePin, wpi.OUTPUT);
-	wpi.digitalWrite(this.openPin, this.LOW);
-	wpi.digitalWrite(this.closePin, this.LOW);
+	wpi.digitalWrite(this.openPin, this.OUTPUT_INACTIVE);
+	wpi.digitalWrite(this.closePin, this.OUTPUT_INACTIVE);
 	
 	this.stateCharac = this.service.getCharacteristic(Characteristic.PositionState)
 		.updateValue(Characteristic.PositionState.STOPPED);
@@ -419,13 +424,13 @@ function RollerShutter(accesory, log, config) {
 	// Configure inputs
 	if(this.openSensorPin !== null) {
 		wpi.pinMode(this.openSensorPin, wpi.INPUT);
-		wpi.pullUpDnControl(this.openSensorPin, wpi.PUD_DOWN);
+		wpi.pullUpDnControl(this.openSensorPin, wpi.PUD_UP);
 		wpi.wiringPiISR(this.openSensorPin, wpi.INT_EDGE_BOTH, this.stateChange.bind(this, this.openSensorPin));
 	}
 	
 	if(this.closeSensorPin !== null) {
 		wpi.pinMode(this.closeSensorPin, wpi.INPUT);
-		wpi.pullUpDnControl(this.closeSensorPin, wpi.PUD_DOWN);
+		wpi.pullUpDnControl(this.closeSensorPin, wpi.PUD_UP);
 		wpi.wiringPiISR(this.closeSensorPin, wpi.INT_EDGE_BOTH, this.stateChange.bind(this, this.closeSensorPin));
 	}
 	
@@ -457,7 +462,6 @@ RollerShutter.prototype = {
  	},
  	
  	setPosition: function(value, callback) {
- 		var that = this;
 		var currentPos = this.positionCharac.value;
 		
 		// Nothing to do
@@ -518,17 +522,17 @@ RollerShutter.prototype = {
 		this.shift.start = Date.now();
 		if(this.pulseDuration) {
 			this.log('Pulse pin ' + pin);
-			wpi.digitalWrite(pin, this.HIGH);
+			wpi.digitalWrite(pin, this.OUTPUT_ACTIVE);
 			wpi.delay(this.pulseDuration);
-			wpi.digitalWrite(pin, this.LOW);
+			wpi.digitalWrite(pin, this.OUTPUT_INACTIVE);
 		} else {
 			if(start) {
 				this.log('Start ' + pin + ' / Stop ' + oppositePin);
-				wpi.digitalWrite(oppositePin, this.LOW);
-				wpi.digitalWrite(pin, this.HIGH);
+				wpi.digitalWrite(oppositePin, this.OUTPUT_INACTIVE);
+				wpi.digitalWrite(pin, this.OUTPUT_ACTIVE);
 			} else {
 				this.log('Stop ' + pin);
-				wpi.digitalWrite(pin, this.LOW);
+				wpi.digitalWrite(pin, this.OUTPUT_INACTIVE);
 			}
 		}
 	},
@@ -571,17 +575,17 @@ function GarageDoor(accesory, log, config) {
 	
 	this.inverted = config.inverted || false;
 	this.autoClose = config.autoClose || false;
-	this.pulseDuration = config.pulseDuration != null ? config.pulseDuration : 200;
+	this.pulseDuration = config.pulseDuration !== undefined ? config.pulseDuration : 200;
 	this.shiftDuration = (config.shiftDuration || 5) * 1000;
-	this.openSensorPin = config.openSensorPin != null ? config.openSensorPin : null;
-	this.closeSensorPin = config.closeSensorPin != null ? config.closeSensorPin : null;
+	this.openSensorPin = config.openSensorPin !== undefined ? config.openSensorPin : null;
+	this.closeSensorPin = config.closeSensorPin !== undefined ? config.closeSensorPin : null;
 	this.invertedInputs = config.invertedInputs || false;
 	
-	this.HIGH = this.inverted ? wpi.LOW : wpi.HIGH;
- 	this.LOW = this.inverted ? wpi.HIGH : wpi.LOW;
+	this.OUTPUT_ACTIVE = this.inverted ? wpi.LOW : wpi.HIGH;
+ 	this.OUTPUT_INACTIVE = this.inverted ? wpi.HIGH : wpi.LOW;
  	
-	this.INPUT_ACTIVE = this.invertedInputs ? wpi.LOW : wpi.HIGH;
-	this.INPUT_INACTIVE = this.invertedInputs ? wpi.HIGH : wpi.LOW;
+	this.INPUT_ACTIVE = this.invertedInputs ? wpi.HIGH : wpi.LOW;
+ 	this.INPUT_INACTIVE = this.invertedInputs ? wpi.LOW : wpi.HIGH;
 	
 	this.service = new Service[config.type](config.name);
 	
@@ -592,13 +596,13 @@ function GarageDoor(accesory, log, config) {
 		
 		wpi.pinMode(this.openPin, wpi.OUTPUT);
 		wpi.pinMode(this.closePin, wpi.OUTPUT);
-		wpi.digitalWrite(this.openPin, this.LOW);
-		wpi.digitalWrite(this.closePin, this.LOW);
+		wpi.digitalWrite(this.openPin, this.OUTPUT_INACTIVE);
+		wpi.digitalWrite(this.closePin, this.OUTPUT_INACTIVE);
 	} else {
 		this.togglePin = config.pin;
 	
 		wpi.pinMode(this.togglePin, wpi.OUTPUT);
-		wpi.digitalWrite(this.togglePin, this.LOW);
+		wpi.digitalWrite(this.togglePin, this.OUTPUT_INACTIVE);
 	}
 	
 	this.stateCharac = this.service.getCharacteristic(Characteristic.CurrentDoorState);
@@ -607,13 +611,13 @@ function GarageDoor(accesory, log, config) {
 	// Configure inputs
 	if(this.openSensorPin !== null) {
 		wpi.pinMode(this.openSensorPin, wpi.INPUT);
-		wpi.pullUpDnControl(this.openSensorPin, wpi.PUD_DOWN);
+		wpi.pullUpDnControl(this.openSensorPin, wpi.PUD_UP);
 		wpi.wiringPiISR(this.openSensorPin, wpi.INT_EDGE_BOTH, this.stateChange.bind(this, this.openSensorPin));
 	}
 	
 	if(this.closeSensorPin !== null) {
 		wpi.pinMode(this.closeSensorPin, wpi.INPUT);
-		wpi.pullUpDnControl(this.closeSensorPin, wpi.PUD_DOWN);
+		wpi.pullUpDnControl(this.closeSensorPin, wpi.PUD_UP);
 		wpi.wiringPiISR(this.closeSensorPin, wpi.INT_EDGE_BOTH, this.stateChange.bind(this, this.closeSensorPin));
 	}
 	
@@ -640,8 +644,6 @@ function GarageDoor(accesory, log, config) {
 
 GarageDoor.prototype = {
  	setState: function(value, callback) {
- 		var that = this;
- 		
  		if(this.cycleTimeoutID != null) {
 			clearTimeout(this.cycleTimeoutID);
 			this.cycleTimeoutID = null;
@@ -659,9 +661,9 @@ GarageDoor.prototype = {
 			pin = this.togglePin;
 		}
 		
-		wpi.digitalWrite(pin, this.HIGH);
+		wpi.digitalWrite(pin, this.OUTPUT_ACTIVE);
 		wpi.delay(this.pulseDuration);
-		wpi.digitalWrite(pin, this.LOW);
+		wpi.digitalWrite(pin, this.OUTPUT_INACTIVE);
 		callback();
 
 		if(this.closeSensorPin === null && this.openSensorPin === null && !this.shiftTimeoutID) {
@@ -691,7 +693,7 @@ GarageDoor.prototype = {
 					this.targetCharac.updateValue(state == this.INPUT_ACTIVE ? Characteristic.TargetDoorState.CLOSED : Characteristic.TargetDoorState.OPEN);
 					this.stateCharac.updateValue(state == this.INPUT_ACTIVE ? Characteristic.CurrentDoorState.CLOSED : Characteristic.CurrentDoorState.OPENING);
 					
-					if(!state && this.openSensorPi === null && !this.shiftTimeoutID) {
+					if(state == this.INPUT_INACTIVE && this.openSensorPin === null && !this.shiftTimeoutID) {
 						this.shiftTimeoutID = setTimeout(function(){
 							this.stateCharac.updateValue(Characteristic.CurrentDoorState.OPEN);
 							this.shiftTimeoutID = null;
@@ -736,8 +738,8 @@ function ProgrammableSwitch(accesory, log, config) {
 	this.shortPress = config.shortPress || 500;
 	this.longPress = config.longPress || 2000;
 	
-	this.HIGH = this.inverted ? wpi.LOW : wpi.HIGH;
- 	this.LOW = this.inverted ? wpi.HIGH : wpi.LOW;
+	this.INPUT_ACTIVE = this.inverted ? wpi.HIGH : wpi.LOW;
+ 	this.INPUT_INACTIVE = this.inverted ? wpi.LOW : wpi.HIGH;
  	
  	this.counter = 0;
  	this.start = null;
@@ -747,7 +749,7 @@ function ProgrammableSwitch(accesory, log, config) {
 	this.eventCharac = service.getCharacteristic(Characteristic.ProgrammableSwitchEvent);
 	
 	wpi.pinMode(this.pin, wpi.INPUT);
-	wpi.pullUpDnControl(this.pin, wpi.PUD_DOWN);
+	wpi.pullUpDnControl(this.pin, wpi.PUD_UP);
 	wpi.wiringPiISR(this.pin, wpi.INT_EDGE_BOTH, this.stateChange.bind(this));
 		
 	accesory.addService(service);
@@ -759,9 +761,7 @@ ProgrammableSwitch.prototype = {
 			this.postponeId = setTimeout(function() {
 				this.postponeId = null;
 				var state = wpi.digitalRead(this.pin);
-				if(this.inverted)
-					state = !state;
-				if(state) {
+				if(state == this.INPUT_ACTIVE) {
 					this.longPressPending = setTimeout(function() {
 						this.eventCharac.updateValue(Characteristic.ProgrammableSwitchEvent.LONG_PRESS);
 						this.longPressPending = null;

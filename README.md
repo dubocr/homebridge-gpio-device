@@ -10,6 +10,15 @@ Homebridge GPIO device expose several HomeKit accessories interacting with GPIO
 4. Install this plugin using: `npm install -g homebridge-gpio-device`
 5. Update your configuration file. See bellow for a sample.
 
+# Wiring
+
+Any inputs are configured with pull-up resistor and considered as active on low state.
+Sensors must be plug as following
+
+`GND <---> SENSOR <---> PIN`
+
+Sensors are considered as _Normally Opened_ by default. If using _Normally Closed_ sensor, you can use `inverted` or `invertedInputs` parameters as explained in the next section.
+
 # Configuration
 
 Configuration example:
