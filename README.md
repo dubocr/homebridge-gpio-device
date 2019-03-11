@@ -18,6 +18,7 @@ Sensors must be plug as following
 `GND <---> SENSOR <---> PIN`
 
 Sensors are considered as _Normally Opened_ by default. If using _Normally Closed_ sensor, you can use `inverted` or `invertedInputs` parameters as explained in the next section.
+Pull-up resistors can be disabled by adding parameter `"pullUp": false` in any accessory using inputs. If disabled, you'll have to wire pull-up or pull-down resistors by yourself.
 
 ###### Note
 

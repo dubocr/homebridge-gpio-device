@@ -88,6 +88,7 @@ function DigitalInput(accesory, log, config) {
 	this.inverted = config.inverted || false;
 	this.toggle = config.toggle || false;
 	this.postpone = config.postpone || 100;
+	this.pullUp = config.pullUp !== undefined ? config.pullUp : true;
 	
 	this.INPUT_ACTIVE = this.inverted ? wpi.HIGH : wpi.LOW;
  	this.INPUT_INACTIVE = this.inverted ? wpi.LOW : wpi.HIGH;
@@ -126,7 +127,7 @@ function DigitalInput(accesory, log, config) {
 		.on('get', this.getState.bind(this));
 	
 	wpi.pinMode(this.pin, wpi.INPUT);
-	wpi.pullUpDnControl(this.pin, wpi.PUD_UP);
+	wpi.pullUpDnControl(this.pin, this.pullUp ? wpi.PUD_UP : wpi.PUD_OFF);
 	if(this.toggle)
 		wpi.wiringPiISR(this.pin, wpi.INT_EDGE_FALLING, this.toggleState.bind(this)); // Falling because pin are pulled-up (so triggers when became low)
 	else
@@ -196,6 +197,7 @@ function DigitalOutput(accesory, log, config) {
 	this.duration = config.duration || false;
 	this.initState = config.initState || 0;
 	this.inputPin = config.inputPin !== undefined ? config.inputPin : null;
+	this.pullUp = config.pullUp !== undefined ? config.pullUp : true;
 	
 	this.OUTPUT_ACTIVE = this.inverted ? wpi.LOW : wpi.HIGH;
 	this.OUTPUT_INACTIVE = this.inverted ? wpi.HIGH : wpi.LOW;
@@ -211,7 +213,7 @@ function DigitalOutput(accesory, log, config) {
 	
 	if(this.inputPin) {
 		wpi.pinMode(this.inputPin, wpi.INPUT);
-		wpi.pullUpDnControl(this.inputPin, wpi.PUD_UP);
+		wpi.pullUpDnControl(this.inputPin, this.pullUp ? wpi.PUD_UP : wpi.PUD_OFF);
 		wpi.wiringPiISR(this.inputPin, wpi.INT_EDGE_BOTH, this.stateChange.bind(this));
 	}
 	
@@ -308,6 +310,7 @@ function LockMechanism(accesory, log, config) {
 	this.duration = config.duration || false;
 	this.inputPin = config.inputPin !== undefined ? config.inputPin : null;
 	this.postpone = config.postpone || 100;
+	this.pullUp = config.pullUp !== undefined ? config.pullUp : true;
 	
 	this.OUTPUT_ACTIVE = this.inverted ? wpi.LOW : wpi.HIGH;
  	this.OUTPUT_INACTIVE = this.inverted ? wpi.HIGH : wpi.LOW;
@@ -317,7 +320,7 @@ function LockMechanism(accesory, log, config) {
  	
  	if(this.inputPin) {
 		wpi.pinMode(this.inputPin, wpi.INPUT);
-		wpi.pullUpDnControl(this.inputPin, wpi.PUD_UP);
+		wpi.pullUpDnControl(this.inputPin, this.pullUp ? wpi.PUD_UP : wpi.PUD_OFF);
 		wpi.wiringPiISR(this.inputPin, wpi.INT_EDGE_BOTH, this.stateChange.bind(this));
 	}
 	
@@ -402,6 +405,7 @@ function RollerShutter(accesory, log, config) {
 	this.closeSensorPin = config.closeSensorPin !== undefined ? config.closeSensorPin : null;
 	this.invertedInputs = config.invertedInputs || false;
 	this.postpone = config.postpone || 100;
+	this.pullUp = config.pullUp !== undefined ? config.pullUp : true;
 	
 	this.OUTPUT_ACTIVE = this.inverted ? wpi.LOW : wpi.HIGH;
  	this.OUTPUT_INACTIVE = this.inverted ? wpi.HIGH : wpi.LOW;
@@ -426,13 +430,13 @@ function RollerShutter(accesory, log, config) {
 	// Configure inputs
 	if(this.openSensorPin !== null) {
 		wpi.pinMode(this.openSensorPin, wpi.INPUT);
-		wpi.pullUpDnControl(this.openSensorPin, wpi.PUD_UP);
+		wpi.pullUpDnControl(this.openSensorPin, this.pullUp ? wpi.PUD_UP : wpi.PUD_OFF);
 		wpi.wiringPiISR(this.openSensorPin, wpi.INT_EDGE_BOTH, this.stateChange.bind(this, this.openSensorPin));
 	}
 	
 	if(this.closeSensorPin !== null) {
 		wpi.pinMode(this.closeSensorPin, wpi.INPUT);
-		wpi.pullUpDnControl(this.closeSensorPin, wpi.PUD_UP);
+		wpi.pullUpDnControl(this.closeSensorPin, this.pullUp ? wpi.PUD_UP : wpi.PUD_OFF);
 		wpi.wiringPiISR(this.closeSensorPin, wpi.INT_EDGE_BOTH, this.stateChange.bind(this, this.closeSensorPin));
 	}
 	
@@ -582,6 +586,7 @@ function GarageDoor(accesory, log, config) {
 	this.openSensorPin = config.openSensorPin !== undefined ? config.openSensorPin : null;
 	this.closeSensorPin = config.closeSensorPin !== undefined ? config.closeSensorPin : null;
 	this.invertedInputs = config.invertedInputs || false;
+	this.pullUp = config.pullUp !== undefined ? config.pullUp : true;
 	
 	this.OUTPUT_ACTIVE = this.inverted ? wpi.LOW : wpi.HIGH;
  	this.OUTPUT_INACTIVE = this.inverted ? wpi.HIGH : wpi.LOW;
@@ -613,13 +618,13 @@ function GarageDoor(accesory, log, config) {
 	// Configure inputs
 	if(this.openSensorPin !== null) {
 		wpi.pinMode(this.openSensorPin, wpi.INPUT);
-		wpi.pullUpDnControl(this.openSensorPin, wpi.PUD_UP);
+		wpi.pullUpDnControl(this.openSensorPin, this.pullUp ? wpi.PUD_UP : wpi.PUD_OFF);
 		wpi.wiringPiISR(this.openSensorPin, wpi.INT_EDGE_BOTH, this.stateChange.bind(this, this.openSensorPin));
 	}
 	
 	if(this.closeSensorPin !== null) {
 		wpi.pinMode(this.closeSensorPin, wpi.INPUT);
-		wpi.pullUpDnControl(this.closeSensorPin, wpi.PUD_UP);
+		wpi.pullUpDnControl(this.closeSensorPin, this.pullUp ? wpi.PUD_UP : wpi.PUD_OFF);
 		wpi.wiringPiISR(this.closeSensorPin, wpi.INT_EDGE_BOTH, this.stateChange.bind(this, this.closeSensorPin));
 	}
 	
@@ -739,6 +744,7 @@ function ProgrammableSwitch(accesory, log, config) {
 	this.postpone = config.postpone || 100;
 	this.shortPress = config.shortPress || 500;
 	this.longPress = config.longPress || 2000;
+	this.pullUp = config.pullUp !== undefined ? config.pullUp : true;
 	
 	this.INPUT_ACTIVE = this.inverted ? wpi.HIGH : wpi.LOW;
  	this.INPUT_INACTIVE = this.inverted ? wpi.LOW : wpi.HIGH;
@@ -751,7 +757,7 @@ function ProgrammableSwitch(accesory, log, config) {
 	this.eventCharac = service.getCharacteristic(Characteristic.ProgrammableSwitchEvent);
 	
 	wpi.pinMode(this.pin, wpi.INPUT);
-	wpi.pullUpDnControl(this.pin, wpi.PUD_UP);
+	wpi.pullUpDnControl(this.pin, this.pullUp ? wpi.PUD_UP : wpi.PUD_OFF);
 	wpi.wiringPiISR(this.pin, wpi.INT_EDGE_BOTH, this.stateChange.bind(this));
 		
 	accesory.addService(service);
