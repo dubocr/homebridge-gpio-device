@@ -99,6 +99,8 @@ function DigitalInput(accesory, log, config) {
 	
 	switch(config.type) {
 		case 'ContactSensor':
+			this.ON_STATE = Characteristic.ContactSensorState.CONTACT_DETECTED;
+			this.OFF_STATE = Characteristic.ContactSensorState.CONTACT_NOT_DETECTED;
 			this.stateCharac = service.getCharacteristic(Characteristic.ContactSensorState);
 		break;
 		case 'MotionSensor':
@@ -285,16 +287,16 @@ DigitalOutput.prototype = {
 	
 	getState: function(callback) {
 		var state = wpi.digitalRead(this.pin);
- 		callback(null, state == this.OUTPUT_ACTIVE ? this.ON_STATE : this.OFF_STATE);
+ 		callback(null, state == this.INPUT_ACTIVE ? this.ON_STATE : this.OFF_STATE);
 	},
 	
 	stateChange: function(delta) {
  		var state = wpi.digitalRead(this.inputPin);
 		if(this.inputStateCharac) {
-			this.inputStateCharac.updateValue(state == this.OUTPUT_ACTIVE ? this.ON_STATE : this.OFF_STATE);
+			this.inputStateCharac.updateValue(state == this.INPUT_ACTIVE ? this.ON_STATE : this.OFF_STATE);
 		} else {
-			wpi.digitalWrite(this.pin, state == this.OUTPUT_ACTIVE ? this.OUTPUT_ACTIVE : this.OUTPUT_INACTIVE);
-			this.stateCharac.updateValue(state == this.OUTPUT_ACTIVE ? this.ON_STATE : this.OFF_STATE);
+			wpi.digitalWrite(this.pin, state == this.INPUT_ACTIVE ? this.OUTPUT_ACTIVE : this.OUTPUT_INACTIVE);
+			this.stateCharac.updateValue(state == this.INPUT_ACTIVE ? this.ON_STATE : this.OFF_STATE);
 		}
  	}
 }
@@ -369,7 +371,7 @@ LockMechanism.prototype = {
 	
 	getLockState: function(callback) {
 		var state = wpi.digitalRead(this.pin);
- 		callback(null, state == this.OUTPUT_ACTIVE ? Characteristic.LockCurrentState.UNSECURED : Characteristic.LockCurrentState.SECURED);
+ 		callback(null, state == this.INPUT_ACTIVE ? Characteristic.LockCurrentState.UNSECURED : Characteristic.LockCurrentState.SECURED);
 	},
 	
 	stateChange: function(delta) {
@@ -377,8 +379,8 @@ LockMechanism.prototype = {
 			this.unbouncingID = setTimeout(function() {
 				this.unbouncingID = null;
 				var state = wpi.digitalRead(this.inputPin);
-				this.state.updateValue(state == this.OUTPUT_ACTIVE ? Characteristic.LockCurrentState.UNSECURED : Characteristic.LockCurrentState.SECURED);
- 				this.target.updateValue(state == this.OUTPUT_ACTIVE ? Characteristic.LockTargetState.UNSECURED : Characteristic.LockTargetState.SECURED);
+				this.state.updateValue(state == this.INPUT_ACTIVE ? Characteristic.LockCurrentState.UNSECURED : Characteristic.LockCurrentState.SECURED);
+ 				this.target.updateValue(state == this.INPUT_ACTIVE ? Characteristic.LockTargetState.UNSECURED : Characteristic.LockTargetState.SECURED);
 			}.bind(this), this.postpone);
 		}
  	}
