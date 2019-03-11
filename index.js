@@ -289,7 +289,7 @@ DigitalOutput.prototype = {
 	
 	getState: function(callback) {
 		var state = wpi.digitalRead(this.pin);
- 		callback(null, state == this.INPUT_ACTIVE ? this.ON_STATE : this.OFF_STATE);
+ 		callback(null, state == this.OUTPUT_ACTIVE ? this.ON_STATE : this.OFF_STATE);
 	},
 	
 	stateChange: function(delta) {
