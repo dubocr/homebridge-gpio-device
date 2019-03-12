@@ -600,6 +600,7 @@ function GarageDoor(accesory, log, config) {
 	this.closeSensorPin = config.closeSensorPin !== undefined ? config.closeSensorPin : null;
 	this.invertedInputs = config.invertedInputs || false;
 	this.pullUp = config.pullUp !== undefined ? config.pullUp : true;
+	this.unbouncing = config.unbouncing || 500;
 	
 	this.OUTPUT_ACTIVE = this.inverted ? wpi.LOW : wpi.HIGH;
  	this.OUTPUT_INACTIVE = this.inverted ? wpi.HIGH : wpi.LOW;
@@ -780,7 +781,7 @@ GarageDoor.prototype = {
 				}
 				this.unbouncingID = null;
 
-			}.bind(this), 500);
+			}.bind(this), this.unbouncing);
 		} else {
 			//this.log("State change ignored");
 		}
