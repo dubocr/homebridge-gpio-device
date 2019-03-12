@@ -335,6 +335,13 @@ function LockMechanism(accesory, log, config) {
 	}
 	
 	accesory.addService(this.service);
+	
+	// Make sure output is in locked state (issue #4)
+	if(this.duration) {
+		setTimeout(function(){
+			wpi.digitalWrite(this.pin, this.OUTPUT_INACTIVE);
+		}.bind(this), this.duration * 1000);
+	}
 }
 
 LockMechanism.prototype = {
@@ -630,7 +637,7 @@ function GarageDoor(accesory, log, config) {
 	}
 	
 	if(this.closeSensorPin !== null) {
-		this.log("Init input closeSensorPin["+this.openSensorPin+"] " + (this.pullUp ? "with pull-up" : "floating"));
+		this.log("Init input closeSensorPin["+this.closeSensorPin+"] " + (this.pullUp ? "with pull-up" : "floating"));
 		wpi.pinMode(this.closeSensorPin, wpi.INPUT);
 		wpi.pullUpDnControl(this.closeSensorPin, this.pullUp ? wpi.PUD_UP : wpi.PUD_OFF);
 		wpi.wiringPiISR(this.closeSensorPin, wpi.INT_EDGE_BOTH, this.stateChange.bind(this, this.closeSensorPin));
@@ -692,7 +699,7 @@ GarageDoor.prototype = {
 			if((value == Characteristic.TargetDoorState.OPEN && this.openSensorPin === null) || (value == Characteristic.TargetDoorState.CLOSE && this.closeSensorPin === null)) {
 				
 				// Update state if we don't have arrival sensor
-				this.log("Emulate opening/closing delay...");
+				this.log("Emulate "+(value == Characteristic.TargetDoorState.OPEN ? "opening" : "closing")+" delay...");
 				this.shiftTimeoutID = setTimeout(function(){
 					this.stateCharac.updateValue(value == Characteristic.TargetDoorState.OPEN ? Characteristic.CurrentDoorState.OPEN : Characteristic.CurrentDoorState.CLOSED);
 			
@@ -705,7 +712,7 @@ GarageDoor.prototype = {
 							this.stateCharac.updateValue(Characteristic.CurrentDoorState.CLOSING);
 							if(this.closeSensorPin === null) {
 								// Update state to closed if we don't have arrival sensor
-								this.log("Emulate opening/closing delay...");
+								this.log("Emulate closing delay...");
 								this.shiftTimeoutID = setTimeout(function(){
 									
 									this.stateCharac.updateValue(Characteristic.CurrentDoorState.CLOSED);
@@ -739,8 +746,19 @@ GarageDoor.prototype = {
 					if(state == this.INPUT_INACTIVE && this.openSensorPin === null) {
 						this.shiftTimeoutID = setTimeout(function(){
 							this.stateCharac.updateValue(Characteristic.CurrentDoorState.OPEN);
-							this.shiftTimeoutID = null;
 							this.log("Shift ends => door opened");
+							if(this.waitingDuration > 0) {
+								// Update state to closing if in cyclic mode if we don't have departure sensor
+								this.log("Emulate waiting delay...");
+								this.shiftTimeoutID = setTimeout(function(){
+							
+									this.targetCharac.updateValue(Characteristic.TargetDoorState.CLOSED);
+									this.stateCharac.updateValue(Characteristic.CurrentDoorState.CLOSING);
+									this.shiftTimeoutID = null;
+								}.bind(this), this.waitingDuration);
+							} else {
+								this.shiftTimeoutID = null;
+							}
 						}.bind(this), this.openingDuration);
 					}
 				} else if(pin === this.openSensorPin) {
