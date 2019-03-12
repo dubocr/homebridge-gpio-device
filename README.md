@@ -244,8 +244,8 @@ When operating, the GPIO is turned on for 200ms.
 | `pin`               		 | Integer			| N/A		| optional, output pin number for toggle opener (first pulse: open, second pulse: close)																				|
 | `pins`               		 | Integer[2]		| N/A		| optional, output pins numbers for open/close opener (pins[0]: open, pins[1]: close)																					|
 | `inverted`               	 | Boolean			| false		| optional, reverse the behaviour of the GPIO **output** pin(s) (pulse becomes HIGH->LOW->HIGH)																						|
-| `openingDuration`          | Integer			| 10		| optional, opening duration of the door (seconds). Emulate transition if closedSensorPin not provided.																	|
-| `closingDuration`          | Integer			| 10		| optional, closing duration of the door (seconds). Emulate transition if openSensorPin not provided.																	|
+| `openingDuration`          | Integer			| 10		| optional, opening duration of the door (seconds). Emulate transition if openSensorPin not provided.																	|
+| `closingDuration`          | Integer			| 10		| optional, closing duration of the door (seconds). Emulate transition if closeSensorPin not provided.																	|
 | `waitingDuration`          | Integer			| N/A		| optional, waiting duration of the door shift before closing (seconds). If setted, emulate a cyclic door if openSensorPin not provided.									|
 | `pulseDuration`          	 | Integer			| 200		| optional, duration of the pin pulse.																																	|
 | `openSensorPin`            | Integer			| N/A		| optional, input pin number for open sensor (LOW: opened position)																										|
