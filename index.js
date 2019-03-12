@@ -795,7 +795,11 @@ GarageDoor.prototype = {
 		} else if(openState == this.INPUT_ACTIVE && closeState == this.INPUT_INACTIVE) {
 			callback(null, Characteristic.CurrentDoorState.OPEN);
 		} else {
-			callback(null, Characteristic.CurrentDoorState.CLOSED);
+			if(this.targetCharac.value == Characteristic.TargetDoorState.OPEN) {
+				callback(null, Characteristic.CurrentDoorState.OPEN);
+			} else {
+				callback(null, Characteristic.CurrentDoorState.CLOSED);
+			}
 		}
  	}
 }
