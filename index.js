@@ -662,7 +662,7 @@ function GarageDoor(accesory, log, config) {
 		this.log("No sensors => door closed");
 	}
 	
-	//this.stateCharac.on('get', this.getState.bind(this));
+	this.stateCharac.on('get', this.getState.bind(this));
 	this.targetCharac.on('set', this.setState.bind(this));
 		
 	accesory.addService(this.service);
