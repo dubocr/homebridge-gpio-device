@@ -580,7 +580,15 @@ function GarageDoor(accesory, log, config) {
 	this.inverted = config.inverted || false;
 	this.autoClose = config.autoClose || false;
 	this.pulseDuration = config.pulseDuration !== undefined ? config.pulseDuration : 200;
-	this.shiftDuration = (config.shiftDuration || 5) * 1000;
+	if(config.shiftDuration) {
+		this.openingDuration = config.shiftDuration * 1000;
+		this.closingDuration = config.shiftDuration * 1000;
+		this.waitingDuration = 5000;
+	} else {
+		this.openingDuration = (config.openingDuration || 10) * 1000;
+		this.closingDuration = (config.closingDuration || 10) * 1000;
+		this.waitingDuration = (config.waitingDuration || 5) * 1000;
+	}
 	this.openSensorPin = config.openSensorPin !== undefined ? config.openSensorPin : null;
 	this.closeSensorPin = config.closeSensorPin !== undefined ? config.closeSensorPin : null;
 	this.invertedInputs = config.invertedInputs || false;
@@ -654,9 +662,9 @@ function GarageDoor(accesory, log, config) {
 
 GarageDoor.prototype = {
  	setState: function(value, callback) {
- 		if(this.cycleTimeoutID != null) {
-			clearTimeout(this.cycleTimeoutID);
-			this.cycleTimeoutID = null;
+ 		if(this.shiftTimeoutID != null) {
+			clearTimeout(this.shiftTimeoutID);
+			this.shiftTimeoutID = null;
 		}
 
 		if(value == this.stateCharac.value) {
@@ -676,58 +684,84 @@ GarageDoor.prototype = {
 		wpi.digitalWrite(pin, this.OUTPUT_INACTIVE);
 		callback();
 
-		if(this.closeSensorPin === null && this.openSensorPin === null && !this.shiftTimeoutID) {
-			this.shiftTimeoutID = setTimeout(function(){
-				this.stateCharac.updateValue(value == Characteristic.TargetDoorState.OPEN ? Characteristic.CurrentDoorState.OPEN : Characteristic.CurrentDoorState.CLOSED);
-		
-				if(value == Characteristic.TargetDoorState.OPEN && this.autoClose) {
-					this.shiftTimeoutID = setTimeout(function(){
-						this.stateCharac.updateValue(Characteristic.CurrentDoorState.CLOSED);
-						this.targetCharac.updateValue(Characteristic.TargetDoorState.CLOSED);
+		if((value == Characteristic.TargetDoorState.OPEN && this.closeSensorPin === null) || (value == Characteristic.TargetDoorState.CLOSE && this.openSensorPin === null)) {
+			
+			// Update state if we don't have departure sensor
+			this.stateCharac.updateValue(value == Characteristic.TargetDoorState.OPEN ? Characteristic.CurrentDoorState.OPENING : Characteristic.CurrentDoorState.CLOSING);
+			
+			if((value == Characteristic.TargetDoorState.OPEN && this.openSensorPin === null) || (value == Characteristic.TargetDoorState.CLOSE && this.closeSensorPin === null)) {
+				
+				// Update state if we don't have arrival sensor
+				this.log("Emulate opening/closing delay...");
+				this.shiftTimeoutID = setTimeout(function(){
+					this.stateCharac.updateValue(value == Characteristic.TargetDoorState.OPEN ? Characteristic.CurrentDoorState.OPEN : Characteristic.CurrentDoorState.CLOSED);
+			
+					if(value == Characteristic.TargetDoorState.OPEN && this.waitingDuration > 0 && this.openSensorPin === null) {
+						// Update state to closing if in cyclic mode if we don't have departure sensor
+						this.log("Emulate waiting delay...");
+						this.shiftTimeoutID = setTimeout(function(){
+							
+							this.targetCharac.updateValue(Characteristic.TargetDoorState.CLOSED);
+							this.stateCharac.updateValue(Characteristic.CurrentDoorState.CLOSING);
+							if(this.closeSensorPin === null) {
+								// Update state to closed if we don't have arrival sensor
+								this.log("Emulate opening/closing delay...");
+								this.shiftTimeoutID = setTimeout(function(){
+									
+									this.stateCharac.updateValue(Characteristic.CurrentDoorState.CLOSED);
+									this.shiftTimeoutID = null;
+
+								}.bind(this), this.closingDuration);
+							}
+						}.bind(this), this.waitingDuration);
+					} else {
 						this.shiftTimeoutID = null;
-					}.bind(this), this.shiftDuration);
-				} else {
-					this.shiftTimeoutID = null;
-				}
-			}.bind(this), this.shiftDuration);
+					}
+				}.bind(this), value == Characteristic.TargetDoorState.OPEN ? this.openingDuration : this.closingDuration);
+			}
 		}
 	},
  	
  	stateChange: function(pin, delta) {
  		if(this.unbouncingID == null) {
 			this.unbouncingID = setTimeout(function() {
-				this.unbouncingID = null;
 				
+				if(this.shiftTimeoutID != null) {
+					clearTimeout(this.shiftTimeoutID);
+					this.shiftTimeoutID = null;
+				}
 				var state = pin ? wpi.digitalRead(pin) : 0;
 				if(pin === this.closeSensorPin) {
 					this.log("closeSensorPin["+pin+"] switch to " + state + " " + (state == this.INPUT_ACTIVE ? "(active) => door closed" : "(inactive) => door opening"));
 					this.targetCharac.updateValue(state == this.INPUT_ACTIVE ? Characteristic.TargetDoorState.CLOSED : Characteristic.TargetDoorState.OPEN);
 					this.stateCharac.updateValue(state == this.INPUT_ACTIVE ? Characteristic.CurrentDoorState.CLOSED : Characteristic.CurrentDoorState.OPENING);
 
-					if(state == this.INPUT_INACTIVE && this.openSensorPin === null && !this.shiftTimeoutID) {
+					if(state == this.INPUT_INACTIVE && this.openSensorPin === null) {
 						this.shiftTimeoutID = setTimeout(function(){
 							this.stateCharac.updateValue(Characteristic.CurrentDoorState.OPEN);
 							this.shiftTimeoutID = null;
 							this.log("Shift ends => door opened");
-						}.bind(this), this.shiftDuration);
+						}.bind(this), this.openingDuration);
 					}
 				} else if(pin === this.openSensorPin) {
 					this.log("openSensorPin["+pin+"] switch to " + state + " " + (state == this.INPUT_ACTIVE ? "(active) => door opened" : "(inactive) => door closing"));
 					this.targetCharac.updateValue(state == this.INPUT_ACTIVE ? Characteristic.TargetDoorState.OPEN : Characteristic.TargetDoorState.CLOSED);
 					this.stateCharac.updateValue(state == this.INPUT_ACTIVE ? Characteristic.CurrentDoorState.OPEN : Characteristic.CurrentDoorState.CLOSING);
 					
-					if(state == this.INPUT_INACTIVE && this.closeSensorPin === null && !this.shiftTimeoutID) {
+					if(state == this.INPUT_INACTIVE && this.closeSensorPin === null) {
 						this.shiftTimeoutID = setTimeout(function(){
 							this.stateCharac.updateValue(Characteristic.CurrentDoorState.CLOSED);
 							this.shiftTimeoutID = null;
 							this.log("Shift ends => door closed");
-						}.bind(this), this.shiftDuration);
+						}.bind(this), this.closingDuration);
 					}
 				} else {
 					this.log("sensorPin["+pin+"] switch to " + state + " => nothing to do as pin number is unknown");
 					//this.targetCharac.updateValue(Characteristic.TargetDoorState.CLOSED);
 					//this.stateCharac.updateValue(Characteristic.CurrentDoorState.CLOSED);
 				}
+				this.unbouncingID = null;
+
 			}.bind(this), 500);
 		} else {
 			//this.log("State change ignored");
