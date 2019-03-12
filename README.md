@@ -165,8 +165,8 @@ wPi pin number must be used in config file
 
 | Parameter                  | Type				| Default 	| Note																																									|
 |----------------------------|------------------|-----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `pin`               		 | Integer			| N/A	  	| mandatory, input pin number to monitor (LOW : sensor triggered, HIGH : sensor not triggered)																			|
-| `inverted`               	 | Boolean			| false		| optional, reverse the behaviour of the GPIO pin (HIGH : sensor triggered, LOW : sensor not triggered)																	|
+| `pin`               		 | Integer			| N/A	  	| mandatory, input pin number to monitor (LOW: sensor triggered, HIGH: sensor not triggered)																			|
+| `inverted`               	 | Boolean			| false		| optional, reverse the behaviour of the GPIO **input** pin (HIGH: sensor triggered, LOW: sensor not triggered)																	|
 | `postpone`               	 | Integer			| 100		| optional, delay (ms) between 2 state change to avoid bouncing																											|
 ###### MotionSensor additional parameters
 
@@ -187,18 +187,18 @@ Could be used with this [PIR Sensor](http://snootlab.com/adafruit/285-capteur-de
 
 | Parameter                  | Type				| Default 	| Note																																									|
 |----------------------------|------------------|-----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `pin`               		 | Integer			| N/A		| mandatory, output pin number to trigger (on : HIGH, off : LOW)																										|
-| `inverted`               	 | Boolean			| false		| optional, reverse the behaviour of the GPIO pin (on : LOW, off : HIGH)																								|
-| `initState`             	 | 0/1				| 0			| optional, default state of the switch at startup (0 : off, 1 : on)																									|
-| `duration`             	 | Integer			| 0			| optional, duration before restoring output state (0 : disabled)																										|
-| `inputPin`               	 | Integer			| N/A		| optional, input pin number used as mirroring.	(LOW : switch to on, HIGH : switch to off)																				|
+| `pin`               		 | Integer			| N/A		| mandatory, output pin number to trigger (on: HIGH, off: LOW)																										|
+| `inverted`               	 | Boolean			| false		| optional, reverse the behaviour of the GPIO **output** pin (on: LOW, off: HIGH)																								|
+| `initState`             	 | 0/1				| 0			| optional, default state of the switch at startup (0: off, 1: on)																									|
+| `duration`             	 | Integer			| 0			| optional, duration before restoring output state (0: disabled)																										|
+| `inputPin`               	 | Integer			| N/A		| optional, input pin number used as mirroring.	(LOW: switch to on, HIGH: switch to off)																				|
 
 ###### Valve optional configuration
 
 | Parameter                  | Type				| Default 	| Note																																									|
 |----------------------------|------------------|-----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `subType`               	 | String			| "generic"	| optional, valve widget subtype like "irrigation", "shower" or "faucet"																								|
-| `inputPin`               	 | Integer			| N/A		| optional, input pin number used as "InUse" characteristic for Valve widget. (LOW : in use, HIGH : not in use)														|
+| `inputPin`               	 | Integer			| N/A		| optional, input pin number used as "InUse" characteristic for Valve widget. (LOW: in use, HIGH: not in use)														|
 
 ## ProgrammableSwitch
 
@@ -208,8 +208,8 @@ Could be used with this [PIR Sensor](http://snootlab.com/adafruit/285-capteur-de
 
 | Parameter                  | Type				| Default 	| Note																																									|
 |----------------------------|------------------|-----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `pin`               		 | Integer			| N/A	  	| mandatory, input pin number to monitor (LOW : button pressed, HIGH : button released)																					|
-| `inverted`               	 | Boolean			| false		| optional, reverse the behaviour of the GPIO pin (HIGH : button pressed, LOW : button released)																		|
+| `pin`               		 | Integer			| N/A	  	| mandatory, input pin number to monitor (LOW: button pressed, HIGH: button released)																					|
+| `inverted`               	 | Boolean			| false		| optional, reverse the behaviour of the GPIO **output** pin (HIGH: button pressed, LOW: button released)																		|
 | `shortPress`             	 | Integer			| 500		| optional, delay (ms) of a short press (double press will be detected if done in this delay)																			|
 | `longPress`              	 | Integer			| 2000		| optional, delay (ms) of a long press																																	|
 | `postpone`               	 | Integer			| 100		| optional, delay (ms) between 2 state change to avoid bouncing																											|
@@ -223,14 +223,14 @@ When operating, the GPIO is turned on for 200ms to simulate a button pression on
 
 | Parameter                  | Type				| Default 	| Note																																									|
 |----------------------------|------------------|-----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `pins`               		 | Integer[2]		| N/A	  	| mandatory, output pins numbers to trigger (pins[0] : open, pins[1] : close)																							|
-| `inverted`               	 | Boolean			| false		| optional, reverse the behaviour of the GPIO pin (pulse becomes HIGH->LOW->HIGH)																						|
+| `pins`               		 | Integer[2]		| N/A	  	| mandatory, output pins numbers to trigger (pins[0]: open, pins[1]: close)																							|
+| `inverted`               	 | Boolean			| false		| optional, reverse the behaviour of the GPIO **output** pin(s) (pulse becomes HIGH->LOW->HIGH)																						|
 | `initPosition`			 | Integer (%)		| 0			| optional, default shutter position at homebridge startup to compensate absence of state feedback, recommanded to ensure open/close scenarios after unexptected restart: 99% |
 | `shiftDuration`            | Integer (sec)	| 20		| optional, duration of a shift (close->open or open->close) used to compute intermediate position																		|
 | `pulseDuration`          	 | Integer			| 200		| optional, duration of the pin pulse. (0: deactivate, pin active during all shifting)																					|
-| `openSensorPin`            | Integer			| N/A		| optional, input pin number for open sensor (LOW: open position)																												|
-| `closeSensorPin`           | Integer			| N/A		| optional, input pin number for close sensor (LOW: close position)																												|
-| `invertedInputs`         	 | Boolean			| false		| optional, reverse the behaviour of the GPIO input pins (detect open/close on HIGH state)																				|
+| `openSensorPin`            | Integer			| N/A		| optional, input pin number for open sensor (LOW: opened position)																												|
+| `closeSensorPin`           | Integer			| N/A		| optional, input pin number for close sensor (LOW: closed position)																												|
+| `invertedInputs`         	 | Boolean			| false		| optional, reverse the behaviour of the GPIO **input** pins (detect opened/closed on HIGH state)																				|
 
 ## GarageDoorOpener
 
@@ -242,15 +242,15 @@ When operating, the GPIO is turned on for 200ms.
 | Parameter                  | Type				| Default 	| Note																																									|
 |----------------------------|------------------|-----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `pin`               		 | Integer			| N/A		| optional, output pin number for toggle opener (first pulse: open, second pulse: close)																				|
-| `pins`               		 | Integer[2]		| N/A		| optional, output pins numbers for open/close opener (pins[0] : open, pins[1] : close)																					|
-| `inverted`               	 | Boolean			| false		| optional, reverse the behaviour of the GPIO pin (pulse becomes HIGH->LOW->HIGH)																						|
+| `pins`               		 | Integer[2]		| N/A		| optional, output pins numbers for open/close opener (pins[0]: open, pins[1]: close)																					|
+| `inverted`               	 | Boolean			| false		| optional, reverse the behaviour of the GPIO **output** pin(s) (pulse becomes HIGH->LOW->HIGH)																						|
 | `openingDuration`          | Integer			| 10		| optional, opening duration of the door (seconds). Emulate transition if closedSensorPin not provided.																	|
 | `closingDuration`          | Integer			| 10		| optional, closing duration of the door (seconds). Emulate transition if openSensorPin not provided.																	|
 | `waitingDuration`          | Integer			| N/A		| optional, waiting duration of the door shift before closing (seconds). If setted, emulate a cyclic door if openSensorPin not provided.									|
 | `pulseDuration`          	 | Integer			| 200		| optional, duration of the pin pulse.																																	|
-| `openSensorPin`            | Integer			| N/A		| optional, input pin number for open sensor (LOW: open position)																										|
-| `closeSensorPin`           | Integer			| N/A		| optional, input pin number for close sensor (LOW: close position)																										|
-| `invertedInputs`         	 | Boolean			| false		| optional, reverse the behaviour of the GPIO input pins (detect open/close on HIGH state)																				|
+| `openSensorPin`            | Integer			| N/A		| optional, input pin number for open sensor (LOW: opened position)																										|
+| `closeSensorPin`           | Integer			| N/A		| optional, input pin number for close sensor (LOW: closed position)																										|
+| `invertedInputs`         	 | Boolean			| false		| optional, reverse the behaviour of the GPIO **input** pins (detect opened/closed on HIGH state)																				|
 
 
 ## LockMechanism
@@ -262,7 +262,7 @@ When operating, the latch is unlocked for `duration` seconds (or indefinitely if
 
 | Parameter                  | Type				| Default 	| Note																																									|
 |----------------------------|------------------|-----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `pin`               		 | Integer		  	| N/A		| mandatory, output pin number to trigger (locked : LOW, unlocked : HIGH)																								|
+| `pin`               		 | Integer		  	| N/A		| mandatory, output pin number to trigger (lock: LOW, unlock: HIGH)																								|
 | `duration`            	 | Integer (sec)  	| 0			| optional, duration before restoring locked state (0 : disabled)																										|
-| `inverted`				 | Boolean		  	| false		| optional, reverse the behaviour of the GPIO pin (locked : HIGH, unlocked : LOW)																						|
-| `inputPin`               	 | Integer			| N/A		| optional, input pin number for lock sensor (LOW : unlocked, HIGH: locked)																								|
+| `inverted`				 | Boolean		  	| false		| optional, reverse the behaviour of the GPIO **output** pin (lock: HIGH, unlock: LOW)																						|
+| `inputPin`               	 | Integer			| N/A		| optional, input pin number for lock sensor (LOW: unlocked, HIGH: locked)																								|
