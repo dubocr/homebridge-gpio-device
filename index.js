@@ -594,7 +594,7 @@ function GarageDoor(accesory, log, config) {
 	} else {
 		this.openingDuration = (config.openingDuration || 10) * 1000;
 		this.closingDuration = (config.closingDuration || 10) * 1000;
-		this.waitingDuration = (config.waitingDuration || 5) * 1000;
+		this.waitingDuration = (config.waitingDuration || 0) * 1000;
 	}
 	this.openSensorPin = config.openSensorPin !== undefined ? config.openSensorPin : null;
 	this.closeSensorPin = config.closeSensorPin !== undefined ? config.closeSensorPin : null;
@@ -654,7 +654,7 @@ function GarageDoor(accesory, log, config) {
 		var state = wpi.digitalRead(this.openSensorPin);
 		this.stateCharac.updateValue(state == this.INPUT_ACTIVE ? Characteristic.CurrentDoorState.OPEN : Characteristic.CurrentDoorState.CLOSED);
 		this.targetCharac.updateValue(state == this.INPUT_ACTIVE ? Characteristic.TargetDoorState.OPEN : Characteristic.TargetDoorState.CLOSED);
-		this.log(state == this.INPUT_ACTIVE ? "openSensor active => door opened" : "closeSensor inactive => door closed");
+		this.log(state == this.INPUT_ACTIVE ? "openSensor active => door opened" : "openSensor inactive => door closed");
 	} else {
 		// Default state if no sensor
 		this.stateCharac.updateValue(Characteristic.CurrentDoorState.CLOSED);
