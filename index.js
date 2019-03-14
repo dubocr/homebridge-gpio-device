@@ -635,6 +635,7 @@ function GarageDoor(accesory, log, config) {
 		wpi.pinMode(this.openSensorPin, wpi.INPUT);
 		wpi.pullUpDnControl(this.openSensorPin, this.pullUp ? wpi.PUD_UP : wpi.PUD_OFF);
 		wpi.wiringPiISR(this.openSensorPin, wpi.INT_EDGE_BOTH, this.stateChange.bind(this, this.openSensorPin));
+		this.lastOpenPinState = wpi.digitalRead(this.openSensorPin);
 	}
 	
 	if(this.closeSensorPin !== null) {
@@ -642,19 +643,18 @@ function GarageDoor(accesory, log, config) {
 		wpi.pinMode(this.closeSensorPin, wpi.INPUT);
 		wpi.pullUpDnControl(this.closeSensorPin, this.pullUp ? wpi.PUD_UP : wpi.PUD_OFF);
 		wpi.wiringPiISR(this.closeSensorPin, wpi.INT_EDGE_BOTH, this.stateChange.bind(this, this.closeSensorPin));
+		this.lastClosePinState = wpi.digitalRead(this.closeSensorPin);
 	}
 	
 	// Init default state
 	if(this.closeSensorPin !== null) {
-		var state = wpi.digitalRead(this.closeSensorPin);
-		this.stateCharac.updateValue(state == this.INPUT_ACTIVE ? Characteristic.CurrentDoorState.CLOSED : Characteristic.CurrentDoorState.OPEN);
-		this.targetCharac.updateValue(state == this.INPUT_ACTIVE ? Characteristic.TargetDoorState.CLOSED : Characteristic.TargetDoorState.OPEN);
-		this.log(state == this.INPUT_ACTIVE ? "closeSensor active => door closed" : "closeSensor inactive => door opened");
+		this.stateCharac.updateValue(this.lastClosePinState == this.INPUT_ACTIVE ? Characteristic.CurrentDoorState.CLOSED : Characteristic.CurrentDoorState.OPEN);
+		this.targetCharac.updateValue(this.lastClosePinState == this.INPUT_ACTIVE ? Characteristic.TargetDoorState.CLOSED : Characteristic.TargetDoorState.OPEN);
+		this.log(this.lastClosePinState == this.INPUT_ACTIVE ? "closeSensor active => door closed" : "closeSensor inactive => door opened");
 	} else if(this.openSensorPin !== null) {
-		var state = wpi.digitalRead(this.openSensorPin);
-		this.stateCharac.updateValue(state == this.INPUT_ACTIVE ? Characteristic.CurrentDoorState.OPEN : Characteristic.CurrentDoorState.CLOSED);
-		this.targetCharac.updateValue(state == this.INPUT_ACTIVE ? Characteristic.TargetDoorState.OPEN : Characteristic.TargetDoorState.CLOSED);
-		this.log(state == this.INPUT_ACTIVE ? "openSensor active => door opened" : "openSensor inactive => door closed");
+		this.stateCharac.updateValue(this.lastOpenPinState == this.INPUT_ACTIVE ? Characteristic.CurrentDoorState.OPEN : Characteristic.CurrentDoorState.CLOSED);
+		this.targetCharac.updateValue(this.lastOpenPinState == this.INPUT_ACTIVE ? Characteristic.TargetDoorState.OPEN : Characteristic.TargetDoorState.CLOSED);
+		this.log(this.lastOpenPinState == this.INPUT_ACTIVE ? "openSensor active => door opened" : "openSensor inactive => door closed");
 	} else {
 		// Default state if no sensor
 		this.stateCharac.updateValue(Characteristic.CurrentDoorState.CLOSED);
@@ -739,7 +739,8 @@ GarageDoor.prototype = {
 					this.shiftTimeoutID = null;
 				}
 				var state = pin ? wpi.digitalRead(pin) : 0;
-				if(pin === this.closeSensorPin) {
+				if(pin === this.closeSensorPin && state != this.lastClosePinState) {
+					this.lastClosePinState = state;
 					this.log("closeSensorPin["+pin+"] switch to " + state + " " + (state == this.INPUT_ACTIVE ? "(active) => door closed" : "(inactive) => door opening"));
 					this.targetCharac.updateValue(state == this.INPUT_ACTIVE ? Characteristic.TargetDoorState.CLOSED : Characteristic.TargetDoorState.OPEN);
 					this.stateCharac.updateValue(state == this.INPUT_ACTIVE ? Characteristic.CurrentDoorState.CLOSED : Characteristic.CurrentDoorState.OPENING);
@@ -762,7 +763,8 @@ GarageDoor.prototype = {
 							}
 						}.bind(this), this.openingDuration);
 					}
-				} else if(pin === this.openSensorPin) {
+				} else if(pin === this.openSensorPin && state != this.lastOpenPinState) {
+					this.lastOpenPinState = state;
 					this.log("openSensorPin["+pin+"] switch to " + state + " " + (state == this.INPUT_ACTIVE ? "(active) => door opened" : "(inactive) => door closing"));
 					this.targetCharac.updateValue(state == this.INPUT_ACTIVE ? Characteristic.TargetDoorState.OPEN : Characteristic.TargetDoorState.CLOSED);
 					this.stateCharac.updateValue(state == this.INPUT_ACTIVE ? Characteristic.CurrentDoorState.OPEN : Characteristic.CurrentDoorState.CLOSING);
@@ -775,7 +777,7 @@ GarageDoor.prototype = {
 						}.bind(this), this.closingDuration);
 					}
 				} else {
-					this.log("sensorPin["+pin+"] switch to " + state + " => nothing to do as pin number is unknown");
+					this.log("sensorPin["+pin+"] switch to " + state + " => nothing to do (unknown pin or no state change)");
 					//this.targetCharac.updateValue(Characteristic.TargetDoorState.CLOSED);
 					//this.stateCharac.updateValue(Characteristic.CurrentDoorState.CLOSED);
 				}
