@@ -665,7 +665,7 @@ function GarageDoor(accesory, log, config) {
 	}
 	
 	this.stateCharac.on('get', this.getState.bind(this));
-	this.targetCharac.on('set', this.setState.bind(this));
+	this.targetCharac.on('get', this.getTargetState.bind(this)).on('set', this.setState.bind(this));
 		
 	accesory.addService(this.service);
 }
@@ -732,9 +732,11 @@ GarageDoor.prototype = {
 			} else {
 				// Motion externally interrupted
 				this.shiftTimeoutID = setTimeout(function(){
-					this.log("Expected end of motion...");
+					this.log("Timeout expires. Restore target to " + (value == Characteristic.TargetDoorState.OPEN ? "closed" : "open"));
+					this.targetCharac.updateValue(!value);
+					this.getTargetState(function(error, state) { this.stateCharac.updateValue(state); }.bind(this));
 					this.shiftTimeoutID = null;
-				}.bind(this), value == Characteristic.TargetDoorState.OPEN ? this.openingDuration : this.closingDuration);
+				}.bind(this), 2*(value == Characteristic.TargetDoorState.OPEN ? this.openingDuration : this.closingDuration));
 			}
 		}
 	},
@@ -802,13 +804,20 @@ GarageDoor.prototype = {
  		if(this.shiftTimeoutID != null) {
  			callback(null, this.stateCharac.value);
  		} else {
+			this.getTargetState(callback);
+		}
+ 	},
+ 	
+ 	getTargetState: function(callback) {
+ 		if(this.shiftTimeoutID != null) {
+ 			callback(null, this.targetCharac.value);
+ 		} else {
 			if(this.closeSensorPin !== null) {
 				var closeState = wpi.digitalRead(this.closeSensorPin);
-				this.targetCharac.updateValue(closeState == this.INPUT_ACTIVE ? Characteristic.TargetDoorState.CLOSED : Characteristic.TargetDoorState.OPEN);
-				callback(null, closeState == this.INPUT_ACTIVE ? Characteristic.CurrentDoorState.CLOSED : Characteristic.CurrentDoorState.OPEN);
+				callback(null, closeState == this.INPUT_ACTIVE ? Characteristic.TargetDoorState.CLOSED : Characteristic.TargetDoorState.OPEN);
 			} else {
 				var openState = this.openSensorPin !== null ? wpi.digitalRead(this.openSensorPin) : this.INPUT_INACTIVE;
-				callback(null, openState == this.INPUT_ACTIVE ? Characteristic.CurrentDoorState.OPEN : this.targetCharac.value);
+				callback(null, openState == this.INPUT_ACTIVE ? Characteristic.TargetDoorState.OPEN : this.targetCharac.value);
 			}
 		}
  	}
