@@ -672,7 +672,6 @@ function GarageDoor(accesory, log, config) {
 
 GarageDoor.prototype = {
  	setState: function(value, callback) {
- 		this.log("Set state " + value + " -- " + Characteristic.TargetDoorState.CLOSED + " -- " + this.closeSensorPin);
  		if(this.shiftTimeoutID != null) {
 			clearTimeout(this.shiftTimeoutID);
 			this.shiftTimeoutID = null;
@@ -730,10 +729,13 @@ GarageDoor.prototype = {
 						this.shiftTimeoutID = null;
 					}
 				}.bind(this), value == Characteristic.TargetDoorState.OPEN ? this.openingDuration : this.closingDuration);
+			} else {
+				// Motion externally interrupted
+				this.shiftTimeoutID = setTimeout(function(){
+					this.log("Expected end of motion...");
+					this.shiftTimeoutID = null;
+				}.bind(this), value == Characteristic.TargetDoorState.OPEN ? this.openingDuration : this.closingDuration);
 			}
-		} else {
-			// Motion externally interrupted
-			
 		}
 	},
  	
@@ -803,12 +805,14 @@ GarageDoor.prototype = {
 			callback(null, Characteristic.CurrentDoorState.CLOSED);
 		} else if(openState == this.INPUT_ACTIVE && closeState == this.INPUT_INACTIVE) {
 			callback(null, Characteristic.CurrentDoorState.OPEN);
-		} else {
+		} else if(this.shiftTimeoutID == null) {
 			if(this.targetCharac.value == Characteristic.TargetDoorState.OPEN) {
 				callback(null, Characteristic.CurrentDoorState.OPEN);
 			} else {
 				callback(null, Characteristic.CurrentDoorState.CLOSED);
 			}
+		} else {
+			callback(null, this.stateCharac.value);
 		}
  	}
 }
