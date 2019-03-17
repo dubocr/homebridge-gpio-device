@@ -562,6 +562,7 @@ RollerShutter.prototype = {
 						this.positionCharac.updateValue(0);
 					}
 					this.stateCharac.updateValue(state == this.INPUT_ACTIVE ? Characteristic.PositionState.STOPPED : Characteristic.PositionState.INCREASING);
+					this.log("closeSensorPin state change " + state);
 				} else if(pin === this.openSensorPin) {
 					if(state == this.INPUT_ACTIVE) {
 						clearTimeout(this.shift.id);
@@ -570,6 +571,7 @@ RollerShutter.prototype = {
 						this.positionCharac.updateValue(100);
 					}
 					this.stateCharac.updateValue(state == this.INPUT_ACTIVE ? Characteristic.PositionState.STOPPED : Characteristic.PositionState.DECREASING);
+					this.log("openSensorPin state change " + state);
 				} else {
 					this.targetCharac.updateValue(this.initState);
 					this.positionCharac.updateValue(this.initState);
@@ -670,6 +672,7 @@ function GarageDoor(accesory, log, config) {
 
 GarageDoor.prototype = {
  	setState: function(value, callback) {
+ 		this.log("Set state " + value + " -- " + Characteristic.TargetDoorState.CLOSED + " -- " + this.closeSensorPin);
  		if(this.shiftTimeoutID != null) {
 			clearTimeout(this.shiftTimeoutID);
 			this.shiftTimeoutID = null;
@@ -677,6 +680,7 @@ GarageDoor.prototype = {
 
 		if(value == this.stateCharac.value) {
 			callback();
+			this.log("Already at state " + value);
 			return;
 		}
 		
@@ -692,12 +696,12 @@ GarageDoor.prototype = {
 		wpi.digitalWrite(pin, this.OUTPUT_INACTIVE);
 		callback();
 
-		if((value == Characteristic.TargetDoorState.OPEN && this.closeSensorPin === null) || (value == Characteristic.TargetDoorState.CLOSE && this.openSensorPin === null)) {
+		if((value == Characteristic.TargetDoorState.OPEN && (this.closeSensorPin === null || this.lastClosePinState == this.INPUT_INACTIVE)) || (value == Characteristic.TargetDoorState.CLOSED && (this.openSensorPin === null || this.lastOpenPinState == this.INPUT_INACTIVE))) {
 			
 			// Update state if we don't have departure sensor
 			this.stateCharac.updateValue(value == Characteristic.TargetDoorState.OPEN ? Characteristic.CurrentDoorState.OPENING : Characteristic.CurrentDoorState.CLOSING);
 			
-			if((value == Characteristic.TargetDoorState.OPEN && this.openSensorPin === null) || (value == Characteristic.TargetDoorState.CLOSE && this.closeSensorPin === null)) {
+			if((value == Characteristic.TargetDoorState.OPEN && this.openSensorPin === null) || (value == Characteristic.TargetDoorState.CLOSED && this.closeSensorPin === null)) {
 				
 				// Update state if we don't have arrival sensor
 				this.log("Emulate "+(value == Characteristic.TargetDoorState.OPEN ? "opening" : "closing")+" delay...");
@@ -727,6 +731,9 @@ GarageDoor.prototype = {
 					}
 				}.bind(this), value == Characteristic.TargetDoorState.OPEN ? this.openingDuration : this.closingDuration);
 			}
+		} else {
+			// Motion externally interrupted
+			
 		}
 	},
  	
@@ -790,8 +797,8 @@ GarageDoor.prototype = {
  	},
  	
  	getState: function(callback) {
- 		var closeState = this.closeSensorPin !== null ? wpi.digitalRead(this.closeSensorPin) : this.INPUT_INACTIVE;
- 		var openState = this.openSensorPin !== null ? wpi.digitalRead(this.openSensorPin) : this.INPUT_INACTIVE;
+		var closeState = this.closeSensorPin !== null ? wpi.digitalRead(this.closeSensorPin) : this.INPUT_INACTIVE;
+		var openState = this.openSensorPin !== null ? wpi.digitalRead(this.openSensorPin) : this.INPUT_INACTIVE;
 		if(closeState == this.INPUT_ACTIVE && openState == this.INPUT_INACTIVE) {
 			callback(null, Characteristic.CurrentDoorState.CLOSED);
 		} else if(openState == this.INPUT_ACTIVE && closeState == this.INPUT_INACTIVE) {
