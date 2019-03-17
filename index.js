@@ -799,20 +799,20 @@ GarageDoor.prototype = {
  	},
  	
  	getState: function(callback) {
-		var closeState = this.closeSensorPin !== null ? wpi.digitalRead(this.closeSensorPin) : this.INPUT_INACTIVE;
-		var openState = this.openSensorPin !== null ? wpi.digitalRead(this.openSensorPin) : this.INPUT_INACTIVE;
-		if(closeState == this.INPUT_ACTIVE && openState == this.INPUT_INACTIVE) {
-			callback(null, Characteristic.CurrentDoorState.CLOSED);
-		} else if(openState == this.INPUT_ACTIVE && closeState == this.INPUT_INACTIVE) {
-			callback(null, Characteristic.CurrentDoorState.OPEN);
-		} else if(this.shiftTimeoutID == null) {
-			if(this.targetCharac.value == Characteristic.TargetDoorState.OPEN) {
-				callback(null, Characteristic.CurrentDoorState.OPEN);
+ 		if(this.shiftTimeoutID != null) {
+ 			callback(null, this.stateCharac.value);
+ 		} else {
+			if(this.closeSensorPin === null) {
+				if(this.targetCharac.value == Characteristic.TargetDoorState.OPEN) {
+					callback(null, Characteristic.CurrentDoorState.OPEN);
+				} else {
+					callback(null, Characteristic.CurrentDoorState.CLOSED);
+				}
 			} else {
-				callback(null, Characteristic.CurrentDoorState.CLOSED);
+				var closeState = wpi.digitalRead(this.closeSensorPin);
+				this.targetCharac.updateValue(closeState == this.INPUT_ACTIVE ? Characteristic.TargetDoorState.CLOSED : Characteristic.TargetDoorState.OPEN);
+				callback(null, closeState == this.INPUT_ACTIVE ? Characteristic.CurrentDoorState.CLOSED : Characteristic.CurrentDoorState.OPEN);
 			}
-		} else {
-			callback(null, this.stateCharac.value);
 		}
  	}
 }
