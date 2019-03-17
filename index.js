@@ -802,16 +802,13 @@ GarageDoor.prototype = {
  		if(this.shiftTimeoutID != null) {
  			callback(null, this.stateCharac.value);
  		} else {
-			if(this.closeSensorPin === null) {
-				if(this.targetCharac.value == Characteristic.TargetDoorState.OPEN) {
-					callback(null, Characteristic.CurrentDoorState.OPEN);
-				} else {
-					callback(null, Characteristic.CurrentDoorState.CLOSED);
-				}
-			} else {
+			if(this.closeSensorPin !== null) {
 				var closeState = wpi.digitalRead(this.closeSensorPin);
 				this.targetCharac.updateValue(closeState == this.INPUT_ACTIVE ? Characteristic.TargetDoorState.CLOSED : Characteristic.TargetDoorState.OPEN);
 				callback(null, closeState == this.INPUT_ACTIVE ? Characteristic.CurrentDoorState.CLOSED : Characteristic.CurrentDoorState.OPEN);
+			} else {
+				var openState = this.openSensorPin !== null ? wpi.digitalRead(this.openSensorPin) : this.INPUT_INACTIVE;
+				callback(null, openState == this.INPUT_ACTIVE ? Characteristic.CurrentDoorState.OPEN : this.targetCharac.value);
 			}
 		}
  	}
