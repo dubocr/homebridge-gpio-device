@@ -511,7 +511,11 @@ RollerShutter.prototype = {
 	
 	motionEnd: function() {
 		if(this.shift.target < 100 && this.shift.target > 0) {
-			this.pinPulse(this.shift.value, false); // Stop shutter by pulsing same pin another time
+			//this.pinPulse(this.shift.value, false); // Stop shutter by pulsing same pin another time
+			var pin = this.shift.value > 0 ? this.closePin : this.openPin;
+			wpi.digitalWrite(pin, this.OUTPUT_ACTIVE);
+			wpi.delay(this.pulseDuration);
+			wpi.digitalWrite(pin, this.OUTPUT_INACTIVE);
 		}
 		
 		if(this.restoreTarget) {
