@@ -232,7 +232,8 @@ When operating, the GPIO is turned on for 200ms to simulate a button pression on
 | `inverted`               	 | Boolean			| false		| optional, reverse the behaviour of the GPIO **output** pin(s) (pulse becomes HIGH->LOW->HIGH)																						|
 | `initPosition`			 | Integer (%)		| 0			| optional, default shutter position at homebridge startup to compensate absence of state feedback, recommanded to ensure open/close scenarios after unexptected restart: 99% |
 | `shiftDuration`            | Integer (sec)	| 20		| optional, duration of a shift (close->open or open->close) used to compute intermediate position																		|
-| `pulseDuration`          	 | Integer			| 200		| optional, duration of the pin pulse. (0: deactivate, pin active during all shifting)																					|
+| `pulseDuration`          	 | Integer			| 200		| optional, duration of the pin pulse. (0: deactivate, pin active during all shifting)	
+| `invertStopPin`          	 | Boolean			| false		| optional, utilize the opposite pin to stop the shutter |
 | `openSensorPin`            | Integer			| N/A		| optional, input pin number for open sensor (LOW: opened position)																												|
 | `closeSensorPin`           | Integer			| N/A		| optional, input pin number for close sensor (LOW: closed position)																												|
 | `invertedInputs`         	 | Boolean			| false		| optional, reverse the behaviour of the GPIO **input** pins (detect opened/closed on HIGH state)																				|
