@@ -518,7 +518,7 @@ RollerShutter.prototype = {
 				wpi.digitalWrite(pin, this.OUTPUT_ACTIVE);
 				wpi.delay(this.pulseDuration);
 				wpi.digitalWrite(pin, this.OUTPUT_INACTIVE);
-				this.log("Using opposite pin: "+pin+" to stop motion");
+				this.log("Using opposite pin, "+pin+" to stop motion");
 			} else { 
 				this.pinPulse(this.shift.value, false); // Stop shutter by pulsing same pin another time
 			}
