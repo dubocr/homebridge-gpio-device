@@ -406,6 +406,7 @@ function RollerShutter(accesory, log, config) {
 	this.restoreTarget = config.restoreTarget || false;
 	this.shiftDuration = (config.shiftDuration || 20) * 10; // Shift duration in ms for a move of 1%
 	this.pulseDuration = config.pulseDuration !== undefined ? config.pulseDuration : 200;
+	this.invertStopPin = config.invertStopPin || false;
 	this.openSensorPin = config.openSensorPin !== undefined ? config.openSensorPin : null;
 	this.closeSensorPin = config.closeSensorPin !== undefined ? config.closeSensorPin : null;
 	this.invertedInputs = config.invertedInputs || false;
@@ -511,7 +512,16 @@ RollerShutter.prototype = {
 	
 	motionEnd: function() {
 		if(this.shift.target < 100 && this.shift.target > 0) {
-			this.pinPulse(this.shift.value, false); // Stop shutter by pulsing same pin another time
+			if(this.invertStopPin === true) {
+				// stop shutter by pulsing the opposite pin
+				var pin = this.shift.value > 0 ? this.closePin : this.openPin;
+				wpi.digitalWrite(pin, this.OUTPUT_ACTIVE);
+				wpi.delay(this.pulseDuration);
+				wpi.digitalWrite(pin, this.OUTPUT_INACTIVE);
+				this.log("Pulse pin "+pin+" to stop motion");
+			} else { 
+				this.pinPulse(this.shift.value, false); // Stop shutter by pulsing same pin another time
+			}
 		}
 		
 		if(this.restoreTarget) {
