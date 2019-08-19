@@ -64,6 +64,7 @@ function DeviceAccesory(log, config) {
 			this.device = new LockMechanism(this, log, config);
 		break;
 		case 'StatelessProgrammableSwitch':
+		case 'Doorbell':
 			this.device = new ProgrammableSwitch(this, log, config);
 		break;
 		default:
