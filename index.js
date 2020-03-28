@@ -247,6 +247,12 @@ function DigitalOutput(accesory, log, config) {
 	
 	if(config.subType && config.type == 'Valve') {
 		var type = Characteristic.ValveType.GENERIC_VALVE;
+
+		if (this.duration != false) {
+			service.getCharacteristic(Characteristic.RemainingDuration)
+			.on('get', this.getDuration.bind(this));		
+		}
+
 		switch(config.subType) {
 			case 'irrigation':
 				service.getCharacteristic(Characteristic.ValveType).updateValue(Characteristic.ValveType.IRRIGATION);
@@ -289,6 +295,14 @@ DigitalOutput.prototype = {
 	getState: function(callback) {
 		var state = wpi.digitalRead(this.pin);
  		callback(null, state == this.OUTPUT_ACTIVE ? this.ON_STATE : this.OFF_STATE);
+	},
+
+	getDuration: function(callback) {
+		if(this.getState == this.OFF_STATE) {
+			callback(null, 0);
+		} else {
+			callback(null, this.duration);
+		}
 	},
 	
 	stateChange: function(delta) {
