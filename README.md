@@ -5,11 +5,11 @@ Homebridge GPIO device expose several HomeKit accessories interacting with GPIO
 # Installation
 
 1. Install homebridge using: `npm install -g homebridge`
-2. Install wiringPi 2.46 (issue with 2.50) using: ~~`sudo apt-get install wiringpi`~~
+2. Install wiringPi 2.52 (issue with 2.50) using: ~~`sudo apt-get install wiringpi`~~
 ```
 cd /tmp
-wget https://lion.drogon.net/wiringpi-2.46-1.deb
-sudo dpkg -i wiringpi-2.46-1.deb
+wget https://project-downloads.drogon.net/wiringpi-latest.deb
+sudo dpkg -i wiringpi-latest.deb
 ```
 3. Add rights to homebridge user if running homebridge as systemd service: `sudo usermod -a -G gpio homebridge`
 4. Install this plugin using: `npm install -g homebridge-gpio-device`
