@@ -4,8 +4,9 @@ Homebridge GPIO device expose several HomeKit accessories interacting with GPIO
 
 # Installation
 
-1. Install homebridge using: `npm install -g homebridge`
-2. Install wiringPi 2.52 (issue with 2.50) using: ~~`sudo apt-get install wiringpi`~~
+1. Install latest NodeJS 10.x (tested with 10.19.0)  
+2. Install homebridge using: `npm install -g homebridge`
+3. Install wiringPi 2.52 (issue with 2.50) using: ~~`sudo apt-get install wiringpi`~~
 ```
 cd /tmp
 wget https://project-downloads.drogon.net/wiringpi-latest.deb
