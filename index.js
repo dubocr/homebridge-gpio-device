@@ -319,12 +319,12 @@ DigitalOutput.prototype = {
 					this.inputStateCharac.updateValue(this.initState);
 				}
 			}.bind(this), this.duration * 1000);
+			this.service.getCharacteristic(Characteristic.RemainingDuration).setValue(this.duration);
 		}
 		
 		if(this.inputStateCharac && this.inputPin === null) {
 			this.inputStateCharac.updateValue(value);
 		}
-		this.service.getCharacteristic(Characteristic.RemainingDuration).setValue(this.duration);
 
  		callback();
 	},
