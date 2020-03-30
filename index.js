@@ -311,7 +311,7 @@ DigitalOutput.prototype = {
 	setState: function(value, callback) {
  		wpi.digitalWrite(this.pin, value ? this.OUTPUT_ACTIVE : this.OUTPUT_INACTIVE);
  		if(this.duration && this.durationTimeoutID == null) {
-			this.durationTimeoutID = setTimeout(function(){
+			this.durationTimeoutID = new timer( function () {
 				this.durationTimeoutID = null;
 				wpi.digitalWrite(this.pin, this.initState ? this.OUTPUT_ACTIVE : this.OUTPUT_INACTIVE);
 				this.stateCharac.updateValue(this.initState);
