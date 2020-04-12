@@ -17,6 +17,37 @@ module.exports = function(homebridge) {
 		homebridge.registerAccessory("homebridge-gpio-device", "GPIODevice", DeviceAccesory);
 }
 
+function timer(callback, delay) {
+    var id, started, remaining = delay, running
+
+    this.start = function() {
+        running = true
+        started = new Date()
+        id = setTimeout(callback, remaining)
+    }
+
+    this.pause = function() {
+        running = false
+        clearTimeout(id)
+        remaining -= new Date() - started
+    }
+
+    this.getTimeLeft = function() {
+        if (running) {
+            this.pause()
+            this.start()
+        }
+
+        return remaining
+    }
+
+    this.getStateRunning = function() {
+        return running
+    }
+
+    this.start()
+}
+
 function DeviceAccesory(log, config) {
 	this.services = [];
 	
@@ -194,6 +225,7 @@ function DigitalOutput(accesory, log, config) {
 	this.pin = config.pin;
 	this.inverted = config.inverted || false;
 	this.duration = config.duration || false;
+	this.durationTimeoutID = null;
 	this.initState = config.initState || 0;
 	this.inputPin = config.inputPin !== undefined ? config.inputPin : null;
 	this.pullUp = config.pullUp !== undefined ? config.pullUp : true;
@@ -217,7 +249,8 @@ function DigitalOutput(accesory, log, config) {
 	}
 	
 	var service = new Service[config.type](config.name);
-	
+	this.service = service;
+
 	switch(config.type) {
 		case 'Valve':
 		case 'IrrigationSystem':
@@ -247,6 +280,14 @@ function DigitalOutput(accesory, log, config) {
 	
 	if(config.subType && config.type == 'Valve') {
 		var type = Characteristic.ValveType.GENERIC_VALVE;
+
+		if (this.duration != false) {
+			service.getCharacteristic(Characteristic.RemainingDuration).on('get', this.getRemainingDuration.bind(this));
+			service.getCharacteristic(Characteristic.SetDuration)
+			.setValue(this.duration)
+			.on('set', this.setDuration.bind(this));
+		}
+
 		switch(config.subType) {
 			case 'irrigation':
 				service.getCharacteristic(Characteristic.ValveType).updateValue(Characteristic.ValveType.IRRIGATION);
@@ -270,7 +311,7 @@ DigitalOutput.prototype = {
 	setState: function(value, callback) {
  		wpi.digitalWrite(this.pin, value ? this.OUTPUT_ACTIVE : this.OUTPUT_INACTIVE);
  		if(this.duration && this.durationTimeoutID == null) {
-			this.durationTimeoutID = setTimeout(function(){
+			this.durationTimeoutID = new timer( function () {
 				this.durationTimeoutID = null;
 				wpi.digitalWrite(this.pin, this.initState ? this.OUTPUT_ACTIVE : this.OUTPUT_INACTIVE);
 				this.stateCharac.updateValue(this.initState);
@@ -278,17 +319,32 @@ DigitalOutput.prototype = {
 					this.inputStateCharac.updateValue(this.initState);
 				}
 			}.bind(this), this.duration * 1000);
+			this.service.getCharacteristic(Characteristic.RemainingDuration).setValue(this.duration);
 		}
 		
 		if(this.inputStateCharac && this.inputPin === null) {
 			this.inputStateCharac.updateValue(value);
 		}
+
  		callback();
 	},
 	
 	getState: function(callback) {
 		var state = wpi.digitalRead(this.pin);
  		callback(null, state == this.OUTPUT_ACTIVE ? this.ON_STATE : this.OFF_STATE);
+	},
+
+	setDuration: function(newDuration, callback) {
+		this.duration = newDuration;
+		callback();
+	},
+
+	getRemainingDuration: function(callback) {
+		if(this.durationTimeoutID === null) {
+			callback(null, 0);
+		} else {
+			callback(null, this.durationTimeoutID.getTimeLeft() / 1000);
+		}
 	},
 	
 	stateChange: function(delta) {
