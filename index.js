@@ -50,17 +50,17 @@ function timer(callback, delay) {
 
 function DeviceAccesory(log, config) {
 	this.services = [];
-	
+
 	if(!config.type) throw new Error("'type' parameter is missing");
 	if(!config.name) throw new Error("'name' parameter is missing for accessory " + config.type);
 	if(!config.hasOwnProperty('pin') && !config.pins) throw new Error("'pin(s)' parameter is missing for accessory " + config.name);
-	
+
 	var infoService = new Service.AccessoryInformation();
 	infoService.setCharacteristic(Characteristic.Manufacturer, 'Raspberry')
 	infoService.setCharacteristic(Characteristic.Model, config.type)
 	//infoService.setCharacteristic(Characteristic.SerialNumber, 'Raspberry');
 	this.services.push(infoService);
-	
+
 	wpi.setup('wpi');
 	switch(config.type) {
 		case 'ContactSensor':
@@ -108,7 +108,7 @@ DeviceAccesory.prototype = {
   getServices: function() {
   	return this.services;
  	},
- 	
+
  	addService: function(service) {
  		this.services.push(service);
  	}
@@ -121,15 +121,15 @@ function DigitalInput(accesory, log, config) {
 	this.toggle = config.toggle || false;
 	this.postpone = config.postpone || 100;
 	this.pullUp = config.pullUp !== undefined ? config.pullUp : true;
-	
+
 	this.INPUT_ACTIVE = this.inverted ? wpi.HIGH : wpi.LOW;
  	this.INPUT_INACTIVE = this.inverted ? wpi.LOW : wpi.HIGH;
-	
+
 	this.ON_STATE = 1;
 	this.OFF_STATE = 0;
-	
+
 	var service = new Service[config.type](config.name);
-	
+
 	switch(config.type) {
 		case 'ContactSensor':
 			this.stateCharac = service.getCharacteristic(Characteristic.ContactSensorState);
@@ -155,16 +155,16 @@ function DigitalInput(accesory, log, config) {
 	}
 	this.stateCharac
 		.on('get', this.getState.bind(this));
-	
+
 	wpi.pinMode(this.pin, wpi.INPUT);
 	wpi.pullUpDnControl(this.pin, this.pullUp ? wpi.PUD_UP : wpi.PUD_OFF);
 	if(this.toggle)
 		wpi.wiringPiISR(this.pin, wpi.INT_EDGE_FALLING, this.toggleState.bind(this)); // Falling because pin are pulled-up (so triggers when became low)
 	else
 		wpi.wiringPiISR(this.pin, wpi.INT_EDGE_BOTH, this.stateChange.bind(this));
-		
+
 	accesory.addService(service);
-	
+
 	/* Occupancy sensor for MotionSensor */
 	if(config.occupancy) {
 		if(!config.occupancy.name) throw new Error("'name' parameter is missing for occupancy");
@@ -174,7 +174,7 @@ function DigitalInput(accesory, log, config) {
 	}
 }
 
-DigitalInput.prototype = { 	
+DigitalInput.prototype = {
  	stateChange: function(delta) {
  		if(this.postponeId == null) {
 			this.postponeId = setTimeout(function() {
@@ -187,7 +187,7 @@ DigitalInput.prototype = {
 			}.bind(this), this.postpone);
  		}
  	},
- 	
+
  	toggleState: function(delta) {
  		if(this.postponeId == null) {
 			this.postponeId = setTimeout(function() {
@@ -197,12 +197,12 @@ DigitalInput.prototype = {
 			}.bind(this), this.postpone);
  		}
  	},
- 	
+
  	getState: function(callback) {
  		var state = wpi.digitalRead(this.pin);
  		callback(null, state == this.INPUT_ACTIVE ? this.ON_STATE : this.OFF_STATE);
 	},
-	
+
 	occupancyUpdate: function(state) {
 		var characteristic = this.occupancy.getCharacteristic(Characteristic.OccupancyDetected);
 		if(state == this.INPUT_ACTIVE) {
@@ -229,25 +229,25 @@ function DigitalOutput(accesory, log, config) {
 	this.initState = config.initState || 0;
 	this.inputPin = config.inputPin !== undefined ? config.inputPin : null;
 	this.pullUp = config.pullUp !== undefined ? config.pullUp : true;
-	
+
 	this.OUTPUT_ACTIVE = this.inverted ? wpi.LOW : wpi.HIGH;
 	this.OUTPUT_INACTIVE = this.inverted ? wpi.HIGH : wpi.LOW;
-	 
+
 	this.INPUT_ACTIVE = wpi.LOW;
  	this.INPUT_INACTIVE = wpi.HIGH;
-	
+
 	this.ON_STATE = 1;
 	this.OFF_STATE = 0;
 
 	wpi.pinMode(this.pin, wpi.OUTPUT);
 	wpi.digitalWrite(this.pin, this.initState ? this.OUTPUT_ACTIVE : this.OUTPUT_INACTIVE);
-	
+
 	if(this.inputPin) {
 		wpi.pinMode(this.inputPin, wpi.INPUT);
 		wpi.pullUpDnControl(this.inputPin, this.pullUp ? wpi.PUD_UP : wpi.PUD_OFF);
 		wpi.wiringPiISR(this.inputPin, wpi.INT_EDGE_BOTH, this.stateChange.bind(this));
 	}
-	
+
 	var service = new Service[config.type](config.name);
 	this.service = service;
 
@@ -277,7 +277,7 @@ function DigitalOutput(accesory, log, config) {
 	this.stateCharac
 		.on('set', this.setState.bind(this))
 		.on('get', this.getState.bind(this));
-	
+
 	if(config.subType && config.type == 'Valve') {
 		var type = Characteristic.ValveType.GENERIC_VALVE;
 
@@ -303,7 +303,7 @@ function DigitalOutput(accesory, log, config) {
 			break;
 		}
 	}
-	
+
 	accesory.addService(service);
 }
 
@@ -321,14 +321,14 @@ DigitalOutput.prototype = {
 			}.bind(this), this.duration * 1000);
 			this.service.getCharacteristic(Characteristic.RemainingDuration).setValue(this.duration);
 		}
-		
+
 		if(this.inputStateCharac && this.inputPin === null) {
 			this.inputStateCharac.updateValue(value);
 		}
 
  		callback();
 	},
-	
+
 	getState: function(callback) {
 		var state = wpi.digitalRead(this.pin);
  		callback(null, state == this.OUTPUT_ACTIVE ? this.ON_STATE : this.OFF_STATE);
@@ -346,7 +346,7 @@ DigitalOutput.prototype = {
 			callback(null, this.durationTimeoutID.getTimeLeft() / 1000);
 		}
 	},
-	
+
 	stateChange: function(delta) {
  		var state = wpi.digitalRead(this.inputPin);
 		if(this.inputStateCharac) {
@@ -366,33 +366,33 @@ function LockMechanism(accesory, log, config) {
 	this.inputPin = config.inputPin !== undefined ? config.inputPin : null;
 	this.postpone = config.postpone || 100;
 	this.pullUp = config.pullUp !== undefined ? config.pullUp : true;
-	
+
 	this.OUTPUT_ACTIVE = this.inverted ? wpi.LOW : wpi.HIGH;
  	this.OUTPUT_INACTIVE = this.inverted ? wpi.HIGH : wpi.LOW;
- 	
+
 	wpi.pinMode(this.pin, wpi.OUTPUT);
 	wpi.digitalWrite(this.pin, this.OUTPUT_INACTIVE);
- 	
+
  	if(this.inputPin) {
 		wpi.pinMode(this.inputPin, wpi.INPUT);
 		wpi.pullUpDnControl(this.inputPin, this.pullUp ? wpi.PUD_UP : wpi.PUD_OFF);
 		wpi.wiringPiISR(this.inputPin, wpi.INT_EDGE_BOTH, this.stateChange.bind(this));
 	}
-	
+
 	this.service = new Service[config.type](config.name);
 	this.target = this.service.getCharacteristic(Characteristic.LockTargetState)
 		.on('set', this.setLockState.bind(this));
 	this.state = this.service.getCharacteristic(Characteristic.LockCurrentState);
-		
+
 	if(this.inputPin === null) {
 		this.target.updateValue(Characteristic.LockCurrentState.SECURED);
 		this.state.updateValue(Characteristic.LockCurrentState.SECURED);
 	} else {
 		this.stateChange();
 	}
-	
+
 	accesory.addService(this.service);
-	
+
 	// Make sure output is in locked state (issue #4)
 	if(this.duration) {
 		setTimeout(function(){
@@ -433,12 +433,12 @@ LockMechanism.prototype = {
  			}
  		}
 	},
-	
+
 	getLockState: function(callback) {
 		var state = wpi.digitalRead(this.pin);
  		callback(null, state == this.INPUT_ACTIVE ? Characteristic.LockCurrentState.UNSECURED : Characteristic.LockCurrentState.SECURED);
 	},
-	
+
 	stateChange: function(delta) {
 		if(this.unbouncingID == null) {
 			this.unbouncingID = setTimeout(function() {
@@ -455,7 +455,7 @@ function RollerShutter(accesory, log, config) {
 	if(config.pins.length != 2) throw new Error("'pins' parameter must contains 2 pin numbers");
 
 	this.log = log;
-	
+
 	this.inverted = config.inverted || false;
 	this.initPosition = config.initPosition || 99;
 	this.openPin = config.pins[0];
@@ -469,40 +469,40 @@ function RollerShutter(accesory, log, config) {
 	this.invertedInputs = config.invertedInputs || false;
 	this.postpone = config.postpone || 100;
 	this.pullUp = config.pullUp !== undefined ? config.pullUp : true;
-	
+
 	this.OUTPUT_ACTIVE = this.inverted ? wpi.LOW : wpi.HIGH;
  	this.OUTPUT_INACTIVE = this.inverted ? wpi.HIGH : wpi.LOW;
-	
+
 	this.INPUT_ACTIVE = this.invertedInputs ? wpi.HIGH : wpi.LOW;
  	this.INPUT_INACTIVE = this.invertedInputs ? wpi.LOW : wpi.HIGH;
-	
+
 	this.service = new Service[config.type](config.name);
 	this.shift = {id:null, start:0, value:0, target:0};
-	
+
 	wpi.pinMode(this.openPin, wpi.OUTPUT);
 	wpi.pinMode(this.closePin, wpi.OUTPUT);
 	wpi.digitalWrite(this.openPin, this.OUTPUT_INACTIVE);
 	wpi.digitalWrite(this.closePin, this.OUTPUT_INACTIVE);
-	
+
 	this.stateCharac = this.service.getCharacteristic(Characteristic.PositionState)
 		.updateValue(Characteristic.PositionState.STOPPED);
 	this.positionCharac = this.service.getCharacteristic(Characteristic.CurrentPosition);
 	this.targetCharac = this.service.getCharacteristic(Characteristic.TargetPosition)
 		.on('set', this.setPosition.bind(this));
-	
+
 	// Configure inputs
 	if(this.openSensorPin !== null) {
 		wpi.pinMode(this.openSensorPin, wpi.INPUT);
 		wpi.pullUpDnControl(this.openSensorPin, this.pullUp ? wpi.PUD_UP : wpi.PUD_OFF);
 		wpi.wiringPiISR(this.openSensorPin, wpi.INT_EDGE_BOTH, this.stateChange.bind(this, this.openSensorPin));
 	}
-	
+
 	if(this.closeSensorPin !== null) {
 		wpi.pinMode(this.closeSensorPin, wpi.INPUT);
 		wpi.pullUpDnControl(this.closeSensorPin, this.pullUp ? wpi.PUD_UP : wpi.PUD_OFF);
 		wpi.wiringPiISR(this.closeSensorPin, wpi.INT_EDGE_BOTH, this.stateChange.bind(this, this.closeSensorPin));
 	}
-	
+
 	// Default position if no sensors
 	var defaultPosition = this.initPosition;
 	if(this.closeSensorPin !== null) {
@@ -511,17 +511,17 @@ function RollerShutter(accesory, log, config) {
 			defaultPosition = 0;
 		}
 	}
-	
+
 	if(this.openSensorPin !== null) {
 		var state = wpi.digitalRead(this.openSensorPin);
 		if(state === this.INPUT_ACTIVE) {
 			defaultPosition = 100;
 		}
 	}
-	
+
 	this.positionCharac.updateValue(defaultPosition);
 	this.targetCharac.updateValue(defaultPosition);
-	
+
 	accesory.addService(this.service);
 }
 
@@ -529,16 +529,16 @@ RollerShutter.prototype = {
   	minMax: function(value) {
  		return Math.max(Math.min(value, 0), 100);
  	},
- 	
+
  	setPosition: function(value, callback) {
 		var currentPos = this.positionCharac.value;
-		
+
 		// Nothing to do
 		if(value == currentPos) {
 			callback();
 			return;
 		}
-		
+
 		if(this.shift.id) {
 			var diff = Date.now() - this.shift.start;
 			if(diff > 1000) {
@@ -553,9 +553,9 @@ RollerShutter.prototype = {
 				return;
 			}
 		}
-		
+
 		this.log("Requesting shifting " + currentPos + " -> " + value);
-		
+
 		var newShiftValue = value - currentPos;
 		if(Math.sign(newShiftValue) != Math.sign(this.shift.value)) { // Change shifting direction
 			this.pinPulse(newShiftValue, true);
@@ -566,7 +566,7 @@ RollerShutter.prototype = {
 		this.shift.id = setTimeout(this.motionEnd.bind(this), duration);
 		callback();
 	},
-	
+
 	motionEnd: function() {
 		if(this.shift.target < 100 && this.shift.target > 0) {
 			if(this.invertStopPin === true) {
@@ -576,11 +576,11 @@ RollerShutter.prototype = {
 				wpi.delay(this.pulseDuration);
 				wpi.digitalWrite(pin, this.OUTPUT_INACTIVE);
 				this.log("Pulse pin "+pin+" to stop motion");
-			} else { 
+			} else {
 				this.pinPulse(this.shift.value, false); // Stop shutter by pulsing same pin another time
 			}
 		}
-		
+
 		if(this.restoreTarget) {
 			this.positionCharac.updateValue(this.initPosition);
 			this.targetCharac.updateValue(this.initPosition);
@@ -593,7 +593,7 @@ RollerShutter.prototype = {
 		this.shift.value = 0;
 		this.shift.target = 0;
 	},
-	
+
 	pinPulse: function(shiftValue, start) {
 		var pin = shiftValue > 0 ? this.openPin : this.closePin;
 		var oppositePin = shiftValue > 0 ? this.closePin : this.openPin;
@@ -614,12 +614,12 @@ RollerShutter.prototype = {
 			}
 		}
 	},
-	
+
 	stateChange: function(pin, delta) {
  		if(this.unbouncingID == null) {
 			this.unbouncingID = setTimeout(function() {
 				this.unbouncingID = null;
-				
+
 				var state = pin ? wpi.digitalRead(pin) : 0;
 				if(pin === this.closeSensorPin) {
 					if(state == this.INPUT_ACTIVE) {
@@ -650,9 +650,9 @@ RollerShutter.prototype = {
 }
 
 function GarageDoor(accesory, log, config) {
-	
+
 	this.log = log;
-	
+
 	this.inverted = config.inverted || false;
 	this.autoClose = config.autoClose || false;
 	this.pulseDuration = config.pulseDuration !== undefined ? config.pulseDuration : 200;
@@ -670,34 +670,34 @@ function GarageDoor(accesory, log, config) {
 	this.invertedInputs = config.invertedInputs || false;
 	this.pullUp = config.pullUp !== undefined ? config.pullUp : true;
 	this.unbouncing = config.unbouncing || 500;
-	
+
 	this.OUTPUT_ACTIVE = this.inverted ? wpi.LOW : wpi.HIGH;
  	this.OUTPUT_INACTIVE = this.inverted ? wpi.HIGH : wpi.LOW;
- 	
+
 	this.INPUT_ACTIVE = this.invertedInputs ? wpi.HIGH : wpi.LOW;
  	this.INPUT_INACTIVE = this.invertedInputs ? wpi.LOW : wpi.HIGH;
-	
+
 	this.service = new Service[config.type](config.name);
-	
+
 	if(config.pin === undefined) {
 		if(config.pins.length != 2) throw new Error("'pins' parameter must contains 2 pin numbers");
 		this.openPin = config.pins[0];
 		this.closePin = config.pins[1];
-		
+
 		wpi.pinMode(this.openPin, wpi.OUTPUT);
 		wpi.pinMode(this.closePin, wpi.OUTPUT);
 		wpi.digitalWrite(this.openPin, this.OUTPUT_INACTIVE);
 		wpi.digitalWrite(this.closePin, this.OUTPUT_INACTIVE);
 	} else {
 		this.togglePin = config.pin;
-	
+
 		wpi.pinMode(this.togglePin, wpi.OUTPUT);
 		wpi.digitalWrite(this.togglePin, this.OUTPUT_INACTIVE);
 	}
-	
+
 	this.stateCharac = this.service.getCharacteristic(Characteristic.CurrentDoorState);
 	this.targetCharac = this.service.getCharacteristic(Characteristic.TargetDoorState);
-	
+
 	// Configure inputs
 	if(this.openSensorPin !== null) {
 		this.log("Init input openSensorPin["+this.openSensorPin+"] " + (this.pullUp ? "with pull-up" : "floating"));
@@ -706,7 +706,7 @@ function GarageDoor(accesory, log, config) {
 		wpi.wiringPiISR(this.openSensorPin, wpi.INT_EDGE_BOTH, this.stateChange.bind(this, this.openSensorPin));
 		this.lastOpenPinState = wpi.digitalRead(this.openSensorPin);
 	}
-	
+
 	if(this.closeSensorPin !== null) {
 		this.log("Init input closeSensorPin["+this.closeSensorPin+"] " + (this.pullUp ? "with pull-up" : "floating"));
 		wpi.pinMode(this.closeSensorPin, wpi.INPUT);
@@ -714,7 +714,7 @@ function GarageDoor(accesory, log, config) {
 		wpi.wiringPiISR(this.closeSensorPin, wpi.INT_EDGE_BOTH, this.stateChange.bind(this, this.closeSensorPin));
 		this.lastClosePinState = wpi.digitalRead(this.closeSensorPin);
 	}
-	
+
 	// Init default state
 	if(this.closeSensorPin !== null) {
 		this.stateCharac.updateValue(this.lastClosePinState == this.INPUT_ACTIVE ? Characteristic.CurrentDoorState.CLOSED : Characteristic.CurrentDoorState.OPEN);
@@ -730,10 +730,10 @@ function GarageDoor(accesory, log, config) {
 		this.targetCharac.updateValue(Characteristic.TargetDoorState.CLOSED);
 		this.log("No sensors => door closed");
 	}
-	
+
 	this.stateCharac.on('get', this.getState.bind(this));
 	this.targetCharac.on('get', this.getTargetState.bind(this)).on('set', this.setState.bind(this));
-		
+
 	accesory.addService(this.service);
 }
 
@@ -749,43 +749,43 @@ GarageDoor.prototype = {
 			this.log("Already at state " + value);
 			return;
 		}
-		
+
 		var pin = null;
 		if(this.togglePin === undefined) {
 			pin = (value == Characteristic.TargetDoorState.OPEN) ? this.openPin : this.closePin;
 		} else {
 			pin = this.togglePin;
 		}
-		
+
 		wpi.digitalWrite(pin, this.OUTPUT_ACTIVE);
 		wpi.delay(this.pulseDuration);
 		wpi.digitalWrite(pin, this.OUTPUT_INACTIVE);
 		callback();
 
 		if((value == Characteristic.TargetDoorState.OPEN && (this.closeSensorPin === null || this.lastClosePinState == this.INPUT_INACTIVE)) || (value == Characteristic.TargetDoorState.CLOSED && (this.openSensorPin === null || this.lastOpenPinState == this.INPUT_INACTIVE))) {
-			
+
 			// Update state if we don't have departure sensor
 			this.stateCharac.updateValue(value == Characteristic.TargetDoorState.OPEN ? Characteristic.CurrentDoorState.OPENING : Characteristic.CurrentDoorState.CLOSING);
-			
+
 			if((value == Characteristic.TargetDoorState.OPEN && this.openSensorPin === null) || (value == Characteristic.TargetDoorState.CLOSED && this.closeSensorPin === null)) {
-				
+
 				// Update state if we don't have arrival sensor
 				this.log("Emulate "+(value == Characteristic.TargetDoorState.OPEN ? "opening" : "closing")+" delay...");
 				this.shiftTimeoutID = setTimeout(function(){
 					this.stateCharac.updateValue(value == Characteristic.TargetDoorState.OPEN ? Characteristic.CurrentDoorState.OPEN : Characteristic.CurrentDoorState.CLOSED);
-			
+
 					if(value == Characteristic.TargetDoorState.OPEN && this.waitingDuration > 0 && this.openSensorPin === null) {
 						// Update state to closing if in cyclic mode if we don't have departure sensor
 						this.log("Emulate waiting delay...");
 						this.shiftTimeoutID = setTimeout(function(){
-							
+
 							this.targetCharac.updateValue(Characteristic.TargetDoorState.CLOSED);
 							this.stateCharac.updateValue(Characteristic.CurrentDoorState.CLOSING);
 							if(this.closeSensorPin === null) {
 								// Update state to closed if we don't have arrival sensor
 								this.log("Emulate closing delay...");
 								this.shiftTimeoutID = setTimeout(function(){
-									
+
 									this.stateCharac.updateValue(Characteristic.CurrentDoorState.CLOSED);
 									this.shiftTimeoutID = null;
 
@@ -807,11 +807,11 @@ GarageDoor.prototype = {
 			}
 		}
 	},
- 	
+
  	stateChange: function(pin, delta) {
  		if(this.unbouncingID == null) {
 			this.unbouncingID = setTimeout(function() {
-				
+
 				if(this.shiftTimeoutID != null) {
 					clearTimeout(this.shiftTimeoutID);
 					this.shiftTimeoutID = null;
@@ -831,7 +831,7 @@ GarageDoor.prototype = {
 								// Update state to closing if in cyclic mode if we don't have departure sensor
 								this.log("Emulate waiting delay...");
 								this.shiftTimeoutID = setTimeout(function(){
-							
+
 									this.targetCharac.updateValue(Characteristic.TargetDoorState.CLOSED);
 									this.stateCharac.updateValue(Characteristic.CurrentDoorState.CLOSING);
 									this.shiftTimeoutID = null;
@@ -846,7 +846,7 @@ GarageDoor.prototype = {
 					this.log("openSensorPin["+pin+"] switch to " + state + " " + (state == this.INPUT_ACTIVE ? "(active) => door opened" : "(inactive) => door closing"));
 					this.targetCharac.updateValue(state == this.INPUT_ACTIVE ? Characteristic.TargetDoorState.OPEN : Characteristic.TargetDoorState.CLOSED);
 					this.stateCharac.updateValue(state == this.INPUT_ACTIVE ? Characteristic.CurrentDoorState.OPEN : Characteristic.CurrentDoorState.CLOSING);
-					
+
 					if(state == this.INPUT_INACTIVE && this.closeSensorPin === null) {
 						this.shiftTimeoutID = setTimeout(function(){
 							this.stateCharac.updateValue(Characteristic.CurrentDoorState.CLOSED);
@@ -866,7 +866,7 @@ GarageDoor.prototype = {
 			//this.log("State change ignored");
 		}
  	},
- 	
+
  	getState: function(callback) {
  		if(this.shiftTimeoutID != null) {
  			callback(null, this.stateCharac.value);
@@ -874,7 +874,7 @@ GarageDoor.prototype = {
 			this.getTargetState(callback);
 		}
  	},
- 	
+
  	getTargetState: function(callback) {
  		if(this.shiftTimeoutID != null) {
  			callback(null, this.targetCharac.value);
@@ -898,25 +898,25 @@ function ProgrammableSwitch(accesory, log, config) {
 	this.shortPress = config.shortPress || 500;
 	this.longPress = config.longPress || 2000;
 	this.pullUp = config.pullUp !== undefined ? config.pullUp : true;
-	
+
 	this.INPUT_ACTIVE = this.inverted ? wpi.HIGH : wpi.LOW;
  	this.INPUT_INACTIVE = this.inverted ? wpi.LOW : wpi.HIGH;
- 	
+
  	this.counter = 0;
  	this.start = null;
-	
+
 	var service = new Service[config.type](config.name);
-	
+
 	this.eventCharac = service.getCharacteristic(Characteristic.ProgrammableSwitchEvent);
-	
+
 	wpi.pinMode(this.pin, wpi.INPUT);
 	wpi.pullUpDnControl(this.pin, this.pullUp ? wpi.PUD_UP : wpi.PUD_OFF);
 	wpi.wiringPiISR(this.pin, wpi.INT_EDGE_BOTH, this.stateChange.bind(this));
-		
+
 	accesory.addService(service);
 }
 
-ProgrammableSwitch.prototype = { 	
+ProgrammableSwitch.prototype = {
  	stateChange: function(delta) {
  		if(this.postponeId == null) {
 			this.postponeId = setTimeout(function() {

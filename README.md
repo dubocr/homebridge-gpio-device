@@ -4,22 +4,11 @@ Homebridge GPIO device expose several HomeKit accessories interacting with GPIO
 
 # Installation
 
-1. Install latest NodeJS 10.x (tested with 10.19.0)  
+1. Install latest NodeJS 10.x (tested with 10.19.0)
 2. Install homebridge using: `npm install -g homebridge`
-3. Install wiringPi 2.46 (issue with 2.5x) using: ~~`sudo apt-get install wiringpi`~~
-```
-cd /tmp
-wget https://unicorn.drogon.net/wiringpi-2.46-1.deb
-sudo dpkg -i wiringpi-2.46-1.deb
-```
+3. Install wiringPi using: `sudo apt-get install wiringpi`
 3. Add rights to homebridge user if running homebridge as systemd service: `sudo usermod -a -G gpio homebridge`
 4. Install this plugin using: `sudo npm install -g homebridge-gpio-device --unsafe-perm`
-5. Upgrade wiringPi on Raspberry Pi 4
-```
-cd /tmp
-wget https://project-downloads.drogon.net/wiringpi-latest.deb
-sudo dpkg -i wiringpi-latest.deb
-```
 6. Update your configuration file. See bellow for a sample.
 
 # Wiring
@@ -239,7 +228,7 @@ When operating, the GPIO is turned on for 200ms to simulate a button pression on
 | `inverted`               	 | Boolean			| false		| optional, reverse the behaviour of the GPIO **output** pin(s) (pulse becomes HIGH->LOW->HIGH)																						|
 | `initPosition`			 | Integer (%)		| 0			| optional, default shutter position at homebridge startup to compensate absence of state feedback, recommanded to ensure open/close scenarios after unexptected restart: 99% |
 | `shiftDuration`            | Integer (sec)	| 20		| optional, duration of a shift (close->open or open->close) used to compute intermediate position																		|
-| `pulseDuration`          	 | Integer			| 200		| optional, duration of the pin pulse. (0: deactivate, pin active during all shifting)	
+| `pulseDuration`          	 | Integer			| 200		| optional, duration of the pin pulse. (0: deactivate, pin active during all shifting)
 | `invertStopPin`          	 | Boolean			| false		| optional, utilize the opposite pin to stop the shutter |
 | `openSensorPin`            | Integer			| N/A		| optional, input pin number for open sensor (LOW: opened position)																												|
 | `closeSensorPin`           | Integer			| N/A		| optional, input pin number for close sensor (LOW: closed position)																												|
