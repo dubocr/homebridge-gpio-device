@@ -1,6 +1,40 @@
 var Accessory, Service, Characteristic, UUIDGen, Types;
 
-var wpi = require('node-wiring-pi');
+const Gpio = require('onoff').Gpio;
+
+const HIGH = Gpio.HIGH;
+const LOW = Gpio.LOW;
+
+var gpio = {
+	INPUT: 'in',
+	OUTPUT: 'out',
+	INT_EDGE_BOTH: 'both',
+	INT_EDGE_FALLING: 'falling',
+	INT_EDGE_RISING: 'rising',
+	io: [],
+	init: function(pin, direction, edge, callback, pull) {
+		if(direction == this.INPUT) {
+			this.io[pin] = new Gpio(pin, direction, edge, {debounceTimeout: 10});
+			this.io[pin].watch(callback);
+		} else {
+			this.io[pin] = new Gpio(pin, direction);
+		}
+	},
+	read: function(pin) {
+		return this.io[pin].readSync();
+	},
+	write: function(pin, value) {
+		return this.io[pin].writeSync(value);
+	},
+	delay: function(milliseconds) {
+		var start = new Date().getTime();
+		for (var i = 0; i < 1e7; i++) {
+			if ((new Date().getTime() - start) > milliseconds){
+				break;
+			}
+		}
+	}
+};
 
 module.exports = function(homebridge) {
     console.log("homebridge-gpio-device API version: " + homebridge.version);
@@ -61,7 +95,6 @@ function DeviceAccesory(log, config) {
 	//infoService.setCharacteristic(Characteristic.SerialNumber, 'Raspberry');
 	this.services.push(infoService);
 
-	wpi.setup('wpi');
 	switch(config.type) {
 		case 'ContactSensor':
 		case 'MotionSensor':
@@ -122,8 +155,8 @@ function DigitalInput(accesory, log, config) {
 	this.postpone = config.postpone || 100;
 	this.pullUp = config.pullUp !== undefined ? config.pullUp : true;
 
-	this.INPUT_ACTIVE = this.inverted ? wpi.HIGH : wpi.LOW;
- 	this.INPUT_INACTIVE = this.inverted ? wpi.LOW : wpi.HIGH;
+	this.INPUT_ACTIVE = this.inverted ? HIGH : LOW;
+ 	this.INPUT_INACTIVE = this.inverted ? LOW : HIGH;
 
 	this.ON_STATE = 1;
 	this.OFF_STATE = 0;
@@ -156,12 +189,23 @@ function DigitalInput(accesory, log, config) {
 	this.stateCharac
 		.on('get', this.getState.bind(this));
 
-	wpi.pinMode(this.pin, wpi.INPUT);
-	wpi.pullUpDnControl(this.pin, this.pullUp ? wpi.PUD_UP : wpi.PUD_OFF);
-	if(this.toggle)
-		wpi.wiringPiISR(this.pin, wpi.INT_EDGE_FALLING, this.toggleState.bind(this)); // Falling because pin are pulled-up (so triggers when became low)
-	else
-		wpi.wiringPiISR(this.pin, wpi.INT_EDGE_BOTH, this.stateChange.bind(this));
+	if(this.toggle) {
+		gpio.init(
+			this.pin,
+			gpio.INPUT,
+			gpio.INT_EDGE_FALLING,
+			this.toggleState.bind(this),
+			this.pullUp ? gpio.PULL_UP : gpio.PULL_OFF
+		);
+	} else {
+		gpio.init(
+			this.pin,
+			gpio.INPUT,
+			gpio.INT_EDGE_BOTH,
+			this.toggleState.bind(this),
+			this.pullUp ? gpio.PULL_UP : gpio.PULL_OFF
+		);
+	}
 
 	accesory.addService(service);
 
@@ -175,11 +219,11 @@ function DigitalInput(accesory, log, config) {
 }
 
 DigitalInput.prototype = {
- 	stateChange: function(delta) {
+ 	stateChange: async function(delta) {
  		if(this.postponeId == null) {
 			this.postponeId = setTimeout(function() {
 				this.postponeId = null;
-				var state = wpi.digitalRead(this.pin);
+				var state = await gpio.read(this.pin);
 				this.stateCharac.updateValue(state == this.INPUT_ACTIVE ? this.ON_STATE : this.OFF_STATE);
 				if(this.occupancy) {
 					this.occupancyUpdate(state);
@@ -188,18 +232,18 @@ DigitalInput.prototype = {
  		}
  	},
 
- 	toggleState: function(delta) {
+ 	toggleState: async function(delta) {
  		if(this.postponeId == null) {
 			this.postponeId = setTimeout(function() {
 				this.postponeId = null;
-				var state = wpi.digitalRead(this.pin);
+				var state = await gpio.read(this.pin);
 				this.stateCharac.updateValue(this.stateCharac.value == this.ON_STATE ? this.OFF_STATE : this.ON_STATE);
 			}.bind(this), this.postpone);
  		}
  	},
 
- 	getState: function(callback) {
- 		var state = wpi.digitalRead(this.pin);
+ 	getState: async function(callback) {
+ 		var state = await gpio.read(this.pin);
  		callback(null, state == this.INPUT_ACTIVE ? this.ON_STATE : this.OFF_STATE);
 	},
 
@@ -230,22 +274,25 @@ function DigitalOutput(accesory, log, config) {
 	this.inputPin = config.inputPin !== undefined ? config.inputPin : null;
 	this.pullUp = config.pullUp !== undefined ? config.pullUp : true;
 
-	this.OUTPUT_ACTIVE = this.inverted ? wpi.LOW : wpi.HIGH;
-	this.OUTPUT_INACTIVE = this.inverted ? wpi.HIGH : wpi.LOW;
+	this.OUTPUT_ACTIVE = this.inverted ? LOW : HIGH;
+	this.OUTPUT_INACTIVE = this.inverted ? HIGH : LOW;
 
-	this.INPUT_ACTIVE = wpi.LOW;
- 	this.INPUT_INACTIVE = wpi.HIGH;
+	this.INPUT_ACTIVE = LOW;
+ 	this.INPUT_INACTIVE = HIGH;
 
 	this.ON_STATE = 1;
 	this.OFF_STATE = 0;
 
-	wpi.pinMode(this.pin, wpi.OUTPUT);
-	wpi.digitalWrite(this.pin, this.initState ? this.OUTPUT_ACTIVE : this.OUTPUT_INACTIVE);
+	gpio.init(this.pin, gpio.OUTPUT, this.initState ? this.OUTPUT_ACTIVE : this.OUTPUT_INACTIVE);
 
 	if(this.inputPin) {
-		wpi.pinMode(this.inputPin, wpi.INPUT);
-		wpi.pullUpDnControl(this.inputPin, this.pullUp ? wpi.PUD_UP : wpi.PUD_OFF);
-		wpi.wiringPiISR(this.inputPin, wpi.INT_EDGE_BOTH, this.stateChange.bind(this));
+		gpio.init(
+			this.inputPin,
+			gpio.INPUT,
+			gpio.INT_EDGE_BOTH,
+			this.stateChange.bind(this),
+			this.pullUp ? gpio.PULL_UP : gpio.PULL_OFF
+		);
 	}
 
 	var service = new Service[config.type](config.name);
@@ -309,11 +356,11 @@ function DigitalOutput(accesory, log, config) {
 
 DigitalOutput.prototype = {
 	setState: function(value, callback) {
- 		wpi.digitalWrite(this.pin, value ? this.OUTPUT_ACTIVE : this.OUTPUT_INACTIVE);
+ 		gpio.write(this.pin, value ? this.OUTPUT_ACTIVE : this.OUTPUT_INACTIVE);
  		if(this.duration && this.durationTimeoutID == null) {
 			this.durationTimeoutID = new timer( function () {
 				this.durationTimeoutID = null;
-				wpi.digitalWrite(this.pin, this.initState ? this.OUTPUT_ACTIVE : this.OUTPUT_INACTIVE);
+				gpio.write(this.pin, this.initState ? this.OUTPUT_ACTIVE : this.OUTPUT_INACTIVE);
 				this.stateCharac.updateValue(this.initState);
 				if(this.inputStateCharac && this.inputPin === null) {
 					this.inputStateCharac.updateValue(this.initState);
@@ -329,8 +376,8 @@ DigitalOutput.prototype = {
  		callback();
 	},
 
-	getState: function(callback) {
-		var state = wpi.digitalRead(this.pin);
+	getState: async function(callback) {
+		var state = await gpio.read(this.pin);
  		callback(null, state == this.OUTPUT_ACTIVE ? this.ON_STATE : this.OFF_STATE);
 	},
 
@@ -347,12 +394,12 @@ DigitalOutput.prototype = {
 		}
 	},
 
-	stateChange: function(delta) {
- 		var state = wpi.digitalRead(this.inputPin);
+	stateChange: async function(delta) {
+ 		var state = await gpio.read(this.inputPin);
 		if(this.inputStateCharac) {
 			this.inputStateCharac.updateValue(state == this.INPUT_ACTIVE ? this.ON_STATE : this.OFF_STATE);
 		} else {
-			wpi.digitalWrite(this.pin, state == this.INPUT_ACTIVE ? this.OUTPUT_ACTIVE : this.OUTPUT_INACTIVE);
+			gpio.write(this.pin, state == this.INPUT_ACTIVE ? this.OUTPUT_ACTIVE : this.OUTPUT_INACTIVE);
 			this.stateCharac.updateValue(state == this.INPUT_ACTIVE ? this.ON_STATE : this.OFF_STATE);
 		}
  	}
@@ -367,16 +414,13 @@ function LockMechanism(accesory, log, config) {
 	this.postpone = config.postpone || 100;
 	this.pullUp = config.pullUp !== undefined ? config.pullUp : true;
 
-	this.OUTPUT_ACTIVE = this.inverted ? wpi.LOW : wpi.HIGH;
- 	this.OUTPUT_INACTIVE = this.inverted ? wpi.HIGH : wpi.LOW;
+	this.OUTPUT_ACTIVE = this.inverted ? LOW : HIGH;
+ 	this.OUTPUT_INACTIVE = this.inverted ? HIGH : LOW;
 
-	wpi.pinMode(this.pin, wpi.OUTPUT);
-	wpi.digitalWrite(this.pin, this.OUTPUT_INACTIVE);
+	gpio.init(this.pin, gpio.OUTPUT, this.OUTPUT_INACTIVE);
 
  	if(this.inputPin) {
-		wpi.pinMode(this.inputPin, wpi.INPUT);
-		wpi.pullUpDnControl(this.inputPin, this.pullUp ? wpi.PUD_UP : wpi.PUD_OFF);
-		wpi.wiringPiISR(this.inputPin, wpi.INT_EDGE_BOTH, this.stateChange.bind(this));
+		gpio.init(this.inputPin, gpio.INPUT, gpio.INT_EDGE_BOTH, this.stateChange.bind(this), this.pullUp ? gpio.PULL_UP : gpio.PULL_OFF);
 	}
 
 	this.service = new Service[config.type](config.name);
@@ -396,7 +440,7 @@ function LockMechanism(accesory, log, config) {
 	// Make sure output is in locked state (issue #4)
 	if(this.duration) {
 		setTimeout(function(){
-			wpi.digitalWrite(this.pin, this.OUTPUT_INACTIVE);
+			gpio.write(this.pin, this.OUTPUT_INACTIVE);
 		}.bind(this), this.duration * 1000);
 	}
 }
@@ -405,7 +449,7 @@ LockMechanism.prototype = {
   	setLockState: function(value, callback) {
  		if(value == Characteristic.LockTargetState.UNSECURED) {
 			this.log("Open LockMechanism on PIN: " + this.pin);
- 			wpi.digitalWrite(this.pin, this.OUTPUT_ACTIVE);
+ 			gpio.write(this.pin, this.OUTPUT_ACTIVE);
  			callback();
  			if(this.inputPin === null) {
  				setTimeout(function(){
@@ -415,7 +459,7 @@ LockMechanism.prototype = {
  			if(this.duration) {
 				setTimeout(function(){
 					this.log("Close LockMechanism on PIN: " + this.pin);
-					wpi.digitalWrite(this.pin, this.OUTPUT_INACTIVE);
+					gpio.write(this.pin, this.OUTPUT_INACTIVE);
 					this.target.updateValue(Characteristic.LockTargetState.SECURED);
 					if(this.inputPin === null) {
  						this.state.updateValue(Characteristic.LockCurrentState.SECURED);
@@ -424,7 +468,7 @@ LockMechanism.prototype = {
  			}
  		} else {
 			this.log("Close LockMechanism on PIN: " + this.pin);
- 			wpi.digitalWrite(this.pin, this.OUTPUT_INACTIVE);
+ 			gpio.write(this.pin, this.OUTPUT_INACTIVE);
  			callback();
  			if(this.inputPin === null) {
  				setTimeout(function(){
@@ -435,7 +479,7 @@ LockMechanism.prototype = {
 	},
 
 	getLockState: function(callback) {
-		var state = wpi.digitalRead(this.pin);
+		var state = gpio.read(this.pin);
  		callback(null, state == this.INPUT_ACTIVE ? Characteristic.LockCurrentState.UNSECURED : Characteristic.LockCurrentState.SECURED);
 	},
 
@@ -443,7 +487,7 @@ LockMechanism.prototype = {
 		if(this.unbouncingID == null) {
 			this.unbouncingID = setTimeout(function() {
 				this.unbouncingID = null;
-				var state = wpi.digitalRead(this.inputPin);
+				var state = gpio.read(this.inputPin);
 				this.state.updateValue(state == this.INPUT_ACTIVE ? Characteristic.LockCurrentState.UNSECURED : Characteristic.LockCurrentState.SECURED);
  				this.target.updateValue(state == this.INPUT_ACTIVE ? Characteristic.LockTargetState.UNSECURED : Characteristic.LockTargetState.SECURED);
 			}.bind(this), this.postpone);
@@ -470,19 +514,17 @@ function RollerShutter(accesory, log, config) {
 	this.postpone = config.postpone || 100;
 	this.pullUp = config.pullUp !== undefined ? config.pullUp : true;
 
-	this.OUTPUT_ACTIVE = this.inverted ? wpi.LOW : wpi.HIGH;
- 	this.OUTPUT_INACTIVE = this.inverted ? wpi.HIGH : wpi.LOW;
+	this.OUTPUT_ACTIVE = this.inverted ? LOW : HIGH;
+ 	this.OUTPUT_INACTIVE = this.inverted ? HIGH : LOW;
 
-	this.INPUT_ACTIVE = this.invertedInputs ? wpi.HIGH : wpi.LOW;
- 	this.INPUT_INACTIVE = this.invertedInputs ? wpi.LOW : wpi.HIGH;
+	this.INPUT_ACTIVE = this.invertedInputs ? HIGH : LOW;
+ 	this.INPUT_INACTIVE = this.invertedInputs ? LOW : HIGH;
 
 	this.service = new Service[config.type](config.name);
 	this.shift = {id:null, start:0, value:0, target:0};
 
-	wpi.pinMode(this.openPin, wpi.OUTPUT);
-	wpi.pinMode(this.closePin, wpi.OUTPUT);
-	wpi.digitalWrite(this.openPin, this.OUTPUT_INACTIVE);
-	wpi.digitalWrite(this.closePin, this.OUTPUT_INACTIVE);
+	gpio.init(this.openPin, gpio.OUTPUT, this.OUTPUT_INACTIVE);
+	gpio.init(this.closePin, gpio.OUTPUT, this.OUTPUT_INACTIVE);
 
 	this.stateCharac = this.service.getCharacteristic(Characteristic.PositionState)
 		.updateValue(Characteristic.PositionState.STOPPED);
@@ -492,28 +534,36 @@ function RollerShutter(accesory, log, config) {
 
 	// Configure inputs
 	if(this.openSensorPin !== null) {
-		wpi.pinMode(this.openSensorPin, wpi.INPUT);
-		wpi.pullUpDnControl(this.openSensorPin, this.pullUp ? wpi.PUD_UP : wpi.PUD_OFF);
-		wpi.wiringPiISR(this.openSensorPin, wpi.INT_EDGE_BOTH, this.stateChange.bind(this, this.openSensorPin));
+		gpio.init(
+			this.openSensorPin,
+			gpio.INPUT,
+			gpio.INT_EDGE_BOTH,
+			this.stateChange.bind(this, this.openSensorPin),
+			this.pullUp ? gpio.PULL_UP : gpio.PULL_OFF
+		);
 	}
 
 	if(this.closeSensorPin !== null) {
-		wpi.pinMode(this.closeSensorPin, wpi.INPUT);
-		wpi.pullUpDnControl(this.closeSensorPin, this.pullUp ? wpi.PUD_UP : wpi.PUD_OFF);
-		wpi.wiringPiISR(this.closeSensorPin, wpi.INT_EDGE_BOTH, this.stateChange.bind(this, this.closeSensorPin));
+		gpio.init(
+			this.closeSensorPin,
+			gpio.INPUT,
+			gpio.INT_EDGE_BOTH,
+			this.stateChange.bind(this, this.closeSensorPin),
+			this.pullUp ? gpio.PULL_UP : gpio.PULL_OFF
+		);
 	}
 
 	// Default position if no sensors
 	var defaultPosition = this.initPosition;
 	if(this.closeSensorPin !== null) {
-		var state = wpi.digitalRead(this.closeSensorPin);
+		var state = gpio.read(this.closeSensorPin);
 		if(state === this.INPUT_ACTIVE) {
 			defaultPosition = 0;
 		}
 	}
 
 	if(this.openSensorPin !== null) {
-		var state = wpi.digitalRead(this.openSensorPin);
+		var state = gpio.read(this.openSensorPin);
 		if(state === this.INPUT_ACTIVE) {
 			defaultPosition = 100;
 		}
@@ -572,9 +622,9 @@ RollerShutter.prototype = {
 			if(this.invertStopPin === true) {
 				// stop shutter by pulsing the opposite pin
 				var pin = this.shift.value > 0 ? this.closePin : this.openPin;
-				wpi.digitalWrite(pin, this.OUTPUT_ACTIVE);
-				wpi.delay(this.pulseDuration);
-				wpi.digitalWrite(pin, this.OUTPUT_INACTIVE);
+				gpio.write(pin, this.OUTPUT_ACTIVE);
+				gpio.delay(this.pulseDuration);
+				gpio.write(pin, this.OUTPUT_INACTIVE);
 				this.log("Pulse pin "+pin+" to stop motion");
 			} else {
 				this.pinPulse(this.shift.value, false); // Stop shutter by pulsing same pin another time
@@ -600,17 +650,17 @@ RollerShutter.prototype = {
 		this.shift.start = Date.now();
 		if(this.pulseDuration) {
 			this.log('Pulse pin ' + pin);
-			wpi.digitalWrite(pin, this.OUTPUT_ACTIVE);
-			wpi.delay(this.pulseDuration);
-			wpi.digitalWrite(pin, this.OUTPUT_INACTIVE);
+			gpio.write(pin, this.OUTPUT_ACTIVE);
+			gpio.delay(this.pulseDuration);
+			gpio.write(pin, this.OUTPUT_INACTIVE);
 		} else {
 			if(start) {
 				this.log('Start ' + pin + ' / Stop ' + oppositePin);
-				wpi.digitalWrite(oppositePin, this.OUTPUT_INACTIVE);
-				wpi.digitalWrite(pin, this.OUTPUT_ACTIVE);
+				gpio.write(oppositePin, this.OUTPUT_INACTIVE);
+				gpio.write(pin, this.OUTPUT_ACTIVE);
 			} else {
 				this.log('Stop ' + pin);
-				wpi.digitalWrite(pin, this.OUTPUT_INACTIVE);
+				gpio.write(pin, this.OUTPUT_INACTIVE);
 			}
 		}
 	},
@@ -620,7 +670,7 @@ RollerShutter.prototype = {
 			this.unbouncingID = setTimeout(function() {
 				this.unbouncingID = null;
 
-				var state = pin ? wpi.digitalRead(pin) : 0;
+				var state = pin ? gpio.read(pin) : 0;
 				if(pin === this.closeSensorPin) {
 					if(state == this.INPUT_ACTIVE) {
 						clearTimeout(this.shift.id);
@@ -671,11 +721,11 @@ function GarageDoor(accesory, log, config) {
 	this.pullUp = config.pullUp !== undefined ? config.pullUp : true;
 	this.unbouncing = config.unbouncing || 500;
 
-	this.OUTPUT_ACTIVE = this.inverted ? wpi.LOW : wpi.HIGH;
- 	this.OUTPUT_INACTIVE = this.inverted ? wpi.HIGH : wpi.LOW;
+	this.OUTPUT_ACTIVE = this.inverted ? LOW : HIGH;
+ 	this.OUTPUT_INACTIVE = this.inverted ? HIGH : LOW;
 
-	this.INPUT_ACTIVE = this.invertedInputs ? wpi.HIGH : wpi.LOW;
- 	this.INPUT_INACTIVE = this.invertedInputs ? wpi.LOW : wpi.HIGH;
+	this.INPUT_ACTIVE = this.invertedInputs ? HIGH : LOW;
+ 	this.INPUT_INACTIVE = this.invertedInputs ? LOW : HIGH;
 
 	this.service = new Service[config.type](config.name);
 
@@ -684,15 +734,12 @@ function GarageDoor(accesory, log, config) {
 		this.openPin = config.pins[0];
 		this.closePin = config.pins[1];
 
-		wpi.pinMode(this.openPin, wpi.OUTPUT);
-		wpi.pinMode(this.closePin, wpi.OUTPUT);
-		wpi.digitalWrite(this.openPin, this.OUTPUT_INACTIVE);
-		wpi.digitalWrite(this.closePin, this.OUTPUT_INACTIVE);
+		gpio.init(this.openPin, gpio.OUTPUT, this.OUTPUT_INACTIVE);
+		gpio.init(this.closePin, gpio.OUTPUT, this.OUTPUT_INACTIVE);
 	} else {
 		this.togglePin = config.pin;
 
-		wpi.pinMode(this.togglePin, wpi.OUTPUT);
-		wpi.digitalWrite(this.togglePin, this.OUTPUT_INACTIVE);
+		gpio.init(this.togglePin, gpio.OUTPUT, this.OUTPUT_INACTIVE);
 	}
 
 	this.stateCharac = this.service.getCharacteristic(Characteristic.CurrentDoorState);
@@ -701,18 +748,26 @@ function GarageDoor(accesory, log, config) {
 	// Configure inputs
 	if(this.openSensorPin !== null) {
 		this.log("Init input openSensorPin["+this.openSensorPin+"] " + (this.pullUp ? "with pull-up" : "floating"));
-		wpi.pinMode(this.openSensorPin, wpi.INPUT);
-		wpi.pullUpDnControl(this.openSensorPin, this.pullUp ? wpi.PUD_UP : wpi.PUD_OFF);
-		wpi.wiringPiISR(this.openSensorPin, wpi.INT_EDGE_BOTH, this.stateChange.bind(this, this.openSensorPin));
-		this.lastOpenPinState = wpi.digitalRead(this.openSensorPin);
+		gpio.init(
+			this.openSensorPin,
+			gpio.INPUT,
+			gpio.INT_EDGE_BOTH,
+			this.stateChange.bind(this, this.openSensorPin),
+			this.pullUp ? gpio.PULL_UP : gpio.PULL_OFF
+		);
+		this.lastOpenPinState = gpio.read(this.openSensorPin);
 	}
 
 	if(this.closeSensorPin !== null) {
 		this.log("Init input closeSensorPin["+this.closeSensorPin+"] " + (this.pullUp ? "with pull-up" : "floating"));
-		wpi.pinMode(this.closeSensorPin, wpi.INPUT);
-		wpi.pullUpDnControl(this.closeSensorPin, this.pullUp ? wpi.PUD_UP : wpi.PUD_OFF);
-		wpi.wiringPiISR(this.closeSensorPin, wpi.INT_EDGE_BOTH, this.stateChange.bind(this, this.closeSensorPin));
-		this.lastClosePinState = wpi.digitalRead(this.closeSensorPin);
+		gpio.init(
+			this.closeSensorPin,
+			gpio.INPUT,
+			gpio.INT_EDGE_BOTH,
+			this.stateChange.bind(this, this.closeSensorPin),
+			this.pullUp ? gpio.PULL_UP : gpio.PULL_OFF
+		);
+		this.lastClosePinState = gpio.read(this.closeSensorPin);
 	}
 
 	// Init default state
@@ -757,9 +812,9 @@ GarageDoor.prototype = {
 			pin = this.togglePin;
 		}
 
-		wpi.digitalWrite(pin, this.OUTPUT_ACTIVE);
-		wpi.delay(this.pulseDuration);
-		wpi.digitalWrite(pin, this.OUTPUT_INACTIVE);
+		gpio.write(pin, this.OUTPUT_ACTIVE);
+		gpio.delay(this.pulseDuration);
+		gpio.write(pin, this.OUTPUT_INACTIVE);
 		callback();
 
 		if((value == Characteristic.TargetDoorState.OPEN && (this.closeSensorPin === null || this.lastClosePinState == this.INPUT_INACTIVE)) || (value == Characteristic.TargetDoorState.CLOSED && (this.openSensorPin === null || this.lastOpenPinState == this.INPUT_INACTIVE))) {
@@ -816,7 +871,7 @@ GarageDoor.prototype = {
 					clearTimeout(this.shiftTimeoutID);
 					this.shiftTimeoutID = null;
 				}
-				var state = pin ? wpi.digitalRead(pin) : 0;
+				var state = pin ? gpio.read(pin) : 0;
 				if(pin === this.closeSensorPin && state != this.lastClosePinState) {
 					this.lastClosePinState = state;
 					this.log("closeSensorPin["+pin+"] switch to " + state + " " + (state == this.INPUT_ACTIVE ? "(active) => door closed" : "(inactive) => door opening"));
@@ -880,10 +935,10 @@ GarageDoor.prototype = {
  			callback(null, this.targetCharac.value);
  		} else {
 			if(this.closeSensorPin !== null) {
-				var closeState = wpi.digitalRead(this.closeSensorPin);
+				var closeState = gpio.read(this.closeSensorPin);
 				callback(null, closeState == this.INPUT_ACTIVE ? Characteristic.TargetDoorState.CLOSED : Characteristic.TargetDoorState.OPEN);
 			} else {
-				var openState = this.openSensorPin !== null ? wpi.digitalRead(this.openSensorPin) : this.INPUT_INACTIVE;
+				var openState = this.openSensorPin !== null ? gpio.read(this.openSensorPin) : this.INPUT_INACTIVE;
 				callback(null, openState == this.INPUT_ACTIVE ? Characteristic.TargetDoorState.OPEN : this.targetCharac.value);
 			}
 		}
@@ -899,8 +954,8 @@ function ProgrammableSwitch(accesory, log, config) {
 	this.longPress = config.longPress || 2000;
 	this.pullUp = config.pullUp !== undefined ? config.pullUp : true;
 
-	this.INPUT_ACTIVE = this.inverted ? wpi.HIGH : wpi.LOW;
- 	this.INPUT_INACTIVE = this.inverted ? wpi.LOW : wpi.HIGH;
+	this.INPUT_ACTIVE = this.inverted ? HIGH : LOW;
+ 	this.INPUT_INACTIVE = this.inverted ? LOW : HIGH;
 
  	this.counter = 0;
  	this.start = null;
@@ -909,9 +964,13 @@ function ProgrammableSwitch(accesory, log, config) {
 
 	this.eventCharac = service.getCharacteristic(Characteristic.ProgrammableSwitchEvent);
 
-	wpi.pinMode(this.pin, wpi.INPUT);
-	wpi.pullUpDnControl(this.pin, this.pullUp ? wpi.PUD_UP : wpi.PUD_OFF);
-	wpi.wiringPiISR(this.pin, wpi.INT_EDGE_BOTH, this.stateChange.bind(this));
+	gpio.init(
+		this.pin,
+		gpio.INPUT,
+		gpio.INT_EDGE_BOTH,
+		this.stateChange.bind(this),
+		this.pullUp ? gpio.PULL_UP : gpio.PULL_OFF
+	);
 
 	accesory.addService(service);
 }
@@ -921,7 +980,7 @@ ProgrammableSwitch.prototype = {
  		if(this.postponeId == null) {
 			this.postponeId = setTimeout(function() {
 				this.postponeId = null;
-				var state = wpi.digitalRead(this.pin);
+				var state = gpio.read(this.pin);
 				if(state == this.INPUT_ACTIVE) {
 					this.longPressPending = setTimeout(function() {
 						this.eventCharac.updateValue(Characteristic.ProgrammableSwitchEvent.LONG_PRESS);
