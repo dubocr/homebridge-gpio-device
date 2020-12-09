@@ -22,6 +22,6 @@
   "author": "Romain DUBOC",
   "license": "ISC",
   "dependencies": {
-    "node-wiring-pi": "0.0.5"
+    "onoff"
   }
 }
