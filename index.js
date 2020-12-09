@@ -48,7 +48,7 @@ module.exports = function (homebridge) {
 	UUIDGen = homebridge.hap.uuid;
 	Types = homebridge.hapLegacyTypes;
 
-	homebridge.registerAccessory("homebridge-gpio-device", "GPIODevice", DeviceAccesory);
+	homebridge.registerAccessory("GPIODevice", DeviceAccesory);
 }
 
 function timer(callback, delay) {
