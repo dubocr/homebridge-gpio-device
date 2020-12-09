@@ -22,6 +22,6 @@
   "author": "Romain DUBOC",
   "license": "ISC",
   "dependencies": {
-    "onoff"
+    "onoff": "~6.0.1"
   }
 }
