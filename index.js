@@ -12,82 +12,82 @@ var gpio = {
 	INT_EDGE_FALLING: 'falling',
 	INT_EDGE_RISING: 'rising',
 	io: [],
-	init: function(pin, direction, edge, callback, pull) {
-		if(direction == this.INPUT) {
-			this.io[pin] = new Gpio(pin, direction, edge, {debounceTimeout: 10});
+	init: function (pin, direction, edge, callback, pull) {
+		if (direction == this.INPUT) {
+			this.io[pin] = new Gpio(pin, direction, edge, { debounceTimeout: 10 });
 			this.io[pin].watch(callback);
 		} else {
 			this.io[pin] = new Gpio(pin, direction);
 		}
 	},
-	read: function(pin) {
+	read: function (pin) {
 		return this.io[pin].readSync();
 	},
-	write: function(pin, value) {
+	write: function (pin, value) {
 		return this.io[pin].writeSync(value);
 	},
-	delay: function(milliseconds) {
+	delay: function (milliseconds) {
 		var start = new Date().getTime();
 		for (var i = 0; i < 1e7; i++) {
-			if ((new Date().getTime() - start) > milliseconds){
+			if ((new Date().getTime() - start) > milliseconds) {
 				break;
 			}
 		}
 	}
 };
 
-module.exports = function(homebridge) {
-    console.log("homebridge-gpio-device API version: " + homebridge.version);
+module.exports = function (homebridge) {
+	console.log("homebridge-gpio-device API version: " + homebridge.version);
 
-    // Accessory must be created from PlatformAccessory Constructor
-    Accessory = homebridge.platformAccessory;
+	// Accessory must be created from PlatformAccessory Constructor
+	Accessory = homebridge.platformAccessory;
 
-    // Service and Characteristic are from hap-nodejs
-    Service = homebridge.hap.Service;
-    Characteristic = homebridge.hap.Characteristic;
-    UUIDGen = homebridge.hap.uuid;
-    Types = homebridge.hapLegacyTypes;
+	// Service and Characteristic are from hap-nodejs
+	Service = homebridge.hap.Service;
+	Characteristic = homebridge.hap.Characteristic;
+	UUIDGen = homebridge.hap.uuid;
+	Types = homebridge.hapLegacyTypes;
 
-		homebridge.registerAccessory("homebridge-gpio-device", "GPIODevice", DeviceAccesory);
+	homebridge.registerAccessory("homebridge-gpio-device", "GPIODevice", DeviceAccesory);
 }
 
 function timer(callback, delay) {
-    var id, started, remaining = delay, running
+	var id, started, remaining = delay, running
 
-    this.start = function() {
-        running = true
-        started = new Date()
-        id = setTimeout(callback, remaining)
-    }
+	this.start = function () {
+		running = true
+		started = new Date()
+		id = setTimeout(callback, remaining)
+	}
 
-    this.pause = function() {
-        running = false
-        clearTimeout(id)
-        remaining -= new Date() - started
-    }
+	this.pause = function () {
+		running = false
+		clearTimeout(id)
+		remaining -= new Date() - started
+	}
 
-    this.getTimeLeft = function() {
-        if (running) {
-            this.pause()
-            this.start()
-        }
+	this.getTimeLeft = function () {
+		if (running) {
+			this.pause()
+			this.start()
+		}
 
-        return remaining
-    }
+		return remaining
+	}
 
-    this.getStateRunning = function() {
-        return running
-    }
+	this.getStateRunning = function () {
+		return running
+	}
 
-    this.start()
+	this.start()
 }
 
 function DeviceAccesory(log, config) {
 	this.services = [];
 
-	if(!config.type) throw new Error("'type' parameter is missing");
-	if(!config.name) throw new Error("'name' parameter is missing for accessory " + config.type);
-	if(!config.hasOwnProperty('pin') && !config.pins) throw new Error("'pin(s)' parameter is missing for accessory " + config.name);
+	if (!config.type) throw new Error("'type' parameter is missing");
+	if (!config.name) throw new Error("'name' parameter is missing for accessory " + config.type);
+	if (!config.hasOwnProperty('pin') && !config.pins) throw new Error("'pin(s)' parameter is missing for accessory " + config.name);
 
 	var infoService = new Service.AccessoryInformation();
 	infoService.setCharacteristic(Characteristic.Manufacturer, 'Raspberry')
@@ -95,7 +95,7 @@ function DeviceAccesory(log, config) {
 	//infoService.setCharacteristic(Characteristic.SerialNumber, 'Raspberry');
 	this.services.push(infoService);
 
-	switch(config.type) {
+	switch (config.type) {
 		case 'ContactSensor':
 		case 'MotionSensor':
 		case 'LeakSensor':
@@ -103,7 +103,7 @@ function DeviceAccesory(log, config) {
 		case 'CarbonDioxideSensor':
 		case 'CarbonMonoxideSensor':
 			this.device = new DigitalInput(this, log, config);
-		break;
+			break;
 		case 'Switch':
 		case 'Lightbulb':
 		case 'Outlet':
@@ -115,36 +115,36 @@ function DeviceAccesory(log, config) {
 		case 'Speaker':
 		case 'Microphone':
 			this.device = new DigitalOutput(this, log, config);
-		break;
+			break;
 		case 'Door':
 		case 'Window':
 		case 'WindowCovering':
 			this.device = new RollerShutter(this, log, config);
-		break;
+			break;
 		case 'GarageDoorOpener':
 			this.device = new GarageDoor(this, log, config);
-		break;
+			break;
 		case 'LockMechanism':
 			this.device = new LockMechanism(this, log, config);
-		break;
+			break;
 		case 'StatelessProgrammableSwitch':
 		case 'Doorbell':
 			this.device = new ProgrammableSwitch(this, log, config);
-		break;
+			break;
 		default:
 			throw new Error("Unknown 'type' parameter : " + config.type);
-		break;
+			break;
 	}
 }
 
 DeviceAccesory.prototype = {
-  getServices: function() {
-  	return this.services;
- 	},
+	getServices: function () {
+		return this.services;
+	},
 
- 	addService: function(service) {
- 		this.services.push(service);
- 	}
+	addService: function (service) {
+		this.services.push(service);
+	}
 }
 
 function DigitalInput(accesory, log, config) {
@@ -156,40 +156,40 @@ function DigitalInput(accesory, log, config) {
 	this.pullUp = config.pullUp !== undefined ? config.pullUp : true;
 
 	this.INPUT_ACTIVE = this.inverted ? HIGH : LOW;
- 	this.INPUT_INACTIVE = this.inverted ? LOW : HIGH;
+	this.INPUT_INACTIVE = this.inverted ? LOW : HIGH;
 
 	this.ON_STATE = 1;
 	this.OFF_STATE = 0;
 
 	var service = new Service[config.type](config.name);
 
-	switch(config.type) {
+	switch (config.type) {
 		case 'ContactSensor':
 			this.stateCharac = service.getCharacteristic(Characteristic.ContactSensorState);
-		break;
+			break;
 		case 'MotionSensor':
 			this.stateCharac = service.getCharacteristic(Characteristic.MotionDetected);
-		break;
+			break;
 		case 'LeakSensor':
 			this.stateCharac = service.getCharacteristic(Characteristic.LeakDetected);
-		break;
+			break;
 		case 'SmokeSensor':
 			this.stateCharac = service.getCharacteristic(Characteristic.SmokeDetected);
-		break;
+			break;
 		case 'CarbonDioxideSensor':
 			this.stateCharac = service.getCharacteristic(Characteristic.CarbonDioxideDetected);
-		break;
+			break;
 		case 'CarbonMonoxideSensor':
 			this.stateCharac = service.getCharacteristic(Characteristic.CarbonMonoxideDetected);
-		break;
+			break;
 		default:
-			 throw new Error("Type " + config.type + " not supported");
-		break;
+			throw new Error("Type " + config.type + " not supported");
+			break;
 	}
 	this.stateCharac
 		.on('get', this.getState.bind(this));
 
-	if(this.toggle) {
+	if (this.toggle) {
 		gpio.init(
 			this.pin,
 			gpio.INPUT,
@@ -210,8 +210,8 @@ function DigitalInput(accesory, log, config) {
 	accesory.addService(service);
 
 	/* Occupancy sensor for MotionSensor */
-	if(config.occupancy) {
-		if(!config.occupancy.name) throw new Error("'name' parameter is missing for occupancy");
+	if (config.occupancy) {
+		if (!config.occupancy.name) throw new Error("'name' parameter is missing for occupancy");
 		this.occupancy = new Service.OccupancySensor(config.occupancy.name);
 		this.occupancyTimeout = (config.occupancy.timeout || 60) * 1000;
 		accesory.addService(this.occupancy);
@@ -219,44 +219,44 @@ function DigitalInput(accesory, log, config) {
 }
 
 DigitalInput.prototype = {
- 	stateChange: async function(delta) {
- 		if(this.postponeId == null) {
-			this.postponeId = setTimeout(function() {
+	stateChange: async function (delta) {
+		if (this.postponeId == null) {
+			this.postponeId = setTimeout(function () {
 				this.postponeId = null;
 				var state = await gpio.read(this.pin);
 				this.stateCharac.updateValue(state == this.INPUT_ACTIVE ? this.ON_STATE : this.OFF_STATE);
-				if(this.occupancy) {
+				if (this.occupancy) {
 					this.occupancyUpdate(state);
 				}
 			}.bind(this), this.postpone);
- 		}
- 	},
+		}
+	},
 
- 	toggleState: async function(delta) {
- 		if(this.postponeId == null) {
-			this.postponeId = setTimeout(function() {
+	toggleState: async function (delta) {
+		if (this.postponeId == null) {
+			this.postponeId = setTimeout(function () {
 				this.postponeId = null;
 				var state = await gpio.read(this.pin);
 				this.stateCharac.updateValue(this.stateCharac.value == this.ON_STATE ? this.OFF_STATE : this.ON_STATE);
 			}.bind(this), this.postpone);
- 		}
- 	},
-
- 	getState: async function(callback) {
- 		var state = await gpio.read(this.pin);
- 		callback(null, state == this.INPUT_ACTIVE ? this.ON_STATE : this.OFF_STATE);
+		}
 	},
 
-	occupancyUpdate: function(state) {
+	getState: async function (callback) {
+		var state = await gpio.read(this.pin);
+		callback(null, state == this.INPUT_ACTIVE ? this.ON_STATE : this.OFF_STATE);
+	},
+
+	occupancyUpdate: function (state) {
 		var characteristic = this.occupancy.getCharacteristic(Characteristic.OccupancyDetected);
-		if(state == this.INPUT_ACTIVE) {
+		if (state == this.INPUT_ACTIVE) {
 			characteristic.updateValue(Characteristic.OccupancyDetected.OCCUPANCY_DETECTED);
-			if(this.occupancyTimeoutID != null) {
+			if (this.occupancyTimeoutID != null) {
 				clearTimeout(this.occupancyTimeoutID);
 				this.occupancyTimeoutID = null;
 			}
-		} else if(characteristic.value == Characteristic.OccupancyDetected.OCCUPANCY_DETECTED) { // On motion ends
-			this.occupancyTimeoutID = setTimeout(function(){
+		} else if (characteristic.value == Characteristic.OccupancyDetected.OCCUPANCY_DETECTED) { // On motion ends
+			this.occupancyTimeoutID = setTimeout(function () {
 				characteristic.updateValue(Characteristic.OccupancyDetected.OCCUPANCY_NOT_DETECTED);
 				this.occupancyTimeoutID = null;
 			}.bind(this), this.occupancyTimeout);
@@ -278,14 +278,14 @@ function DigitalOutput(accesory, log, config) {
 	this.OUTPUT_INACTIVE = this.inverted ? HIGH : LOW;
 
 	this.INPUT_ACTIVE = LOW;
- 	this.INPUT_INACTIVE = HIGH;
+	this.INPUT_INACTIVE = HIGH;
 
 	this.ON_STATE = 1;
 	this.OFF_STATE = 0;
 
 	gpio.init(this.pin, gpio.OUTPUT, this.initState ? this.OUTPUT_ACTIVE : this.OUTPUT_INACTIVE);
 
-	if(this.inputPin) {
+	if (this.inputPin) {
 		gpio.init(
 			this.inputPin,
 			gpio.INPUT,
@@ -298,56 +298,56 @@ function DigitalOutput(accesory, log, config) {
 	var service = new Service[config.type](config.name);
 	this.service = service;
 
-	switch(config.type) {
+	switch (config.type) {
 		case 'Valve':
 		case 'IrrigationSystem':
 			this.inputStateCharac = service.getCharacteristic(Characteristic.InUse);
 		case 'Faucet':
 		case 'Fanv2':
 			this.stateCharac = service.getCharacteristic(Characteristic.Active);
-		break;
+			break;
 		case 'Outlet':
 			this.inputStateCharac = service.getCharacteristic(Characteristic.OutletInUse);
 		case 'Switch':
 		case 'Lightbulb':
 		case 'Fan':
 			this.stateCharac = service.getCharacteristic(Characteristic.On);
-		break;
+			break;
 		case 'Speaker':
 		case 'Microphone':
 			this.stateCharac = service.getCharacteristic(Characteristic.Mute);
-		break;
+			break;
 		default:
-			 throw new Error("Type " + config.type + " not supported");
-		break;
+			throw new Error("Type " + config.type + " not supported");
+			break;
 	}
 	this.stateCharac
 		.on('set', this.setState.bind(this))
 		.on('get', this.getState.bind(this));
 
-	if(config.subType && config.type == 'Valve') {
+	if (config.subType && config.type == 'Valve') {
 		var type = Characteristic.ValveType.GENERIC_VALVE;
 
 		if (this.duration != false) {
 			service.getCharacteristic(Characteristic.RemainingDuration).on('get', this.getRemainingDuration.bind(this));
 			service.getCharacteristic(Characteristic.SetDuration)
-			.setValue(this.duration)
-			.on('set', this.setDuration.bind(this));
+				.setValue(this.duration)
+				.on('set', this.setDuration.bind(this));
 		}
 
-		switch(config.subType) {
+		switch (config.subType) {
 			case 'irrigation':
 				service.getCharacteristic(Characteristic.ValveType).updateValue(Characteristic.ValveType.IRRIGATION);
-			break;
+				break;
 			case 'shower':
 				service.getCharacteristic(Characteristic.ValveType).updateValue(Characteristic.ValveType.SHOWER_HEAD);
-			break;
+				break;
 			case 'faucet':
 				service.getCharacteristic(Characteristic.ValveType).updateValue(Characteristic.ValveType.WATER_FAUCET);
-			break;
+				break;
 			case 'generic':
 			default:
-			break;
+				break;
 		}
 	}
 
@@ -355,54 +355,54 @@ function DigitalOutput(accesory, log, config) {
 }
 
 DigitalOutput.prototype = {
-	setState: function(value, callback) {
- 		gpio.write(this.pin, value ? this.OUTPUT_ACTIVE : this.OUTPUT_INACTIVE);
- 		if(this.duration && this.durationTimeoutID == null) {
-			this.durationTimeoutID = new timer( function () {
+	setState: function (value, callback) {
+		gpio.write(this.pin, value ? this.OUTPUT_ACTIVE : this.OUTPUT_INACTIVE);
+		if (this.duration && this.durationTimeoutID == null) {
+			this.durationTimeoutID = new timer(function () {
 				this.durationTimeoutID = null;
 				gpio.write(this.pin, this.initState ? this.OUTPUT_ACTIVE : this.OUTPUT_INACTIVE);
 				this.stateCharac.updateValue(this.initState);
-				if(this.inputStateCharac && this.inputPin === null) {
+				if (this.inputStateCharac && this.inputPin === null) {
 					this.inputStateCharac.updateValue(this.initState);
 				}
 			}.bind(this), this.duration * 1000);
 			this.service.getCharacteristic(Characteristic.RemainingDuration).setValue(this.duration);
 		}
 
-		if(this.inputStateCharac && this.inputPin === null) {
+		if (this.inputStateCharac && this.inputPin === null) {
 			this.inputStateCharac.updateValue(value);
 		}
 
- 		callback();
+		callback();
 	},
 
-	getState: async function(callback) {
+	getState: async function (callback) {
 		var state = await gpio.read(this.pin);
- 		callback(null, state == this.OUTPUT_ACTIVE ? this.ON_STATE : this.OFF_STATE);
+		callback(null, state == this.OUTPUT_ACTIVE ? this.ON_STATE : this.OFF_STATE);
 	},
 
-	setDuration: function(newDuration, callback) {
+	setDuration: function (newDuration, callback) {
 		this.duration = newDuration;
 		callback();
 	},
 
-	getRemainingDuration: function(callback) {
-		if(this.durationTimeoutID === null) {
+	getRemainingDuration: function (callback) {
+		if (this.durationTimeoutID === null) {
 			callback(null, 0);
 		} else {
 			callback(null, this.durationTimeoutID.getTimeLeft() / 1000);
 		}
 	},
 
-	stateChange: async function(delta) {
- 		var state = await gpio.read(this.inputPin);
-		if(this.inputStateCharac) {
+	stateChange: async function (delta) {
+		var state = await gpio.read(this.inputPin);
+		if (this.inputStateCharac) {
 			this.inputStateCharac.updateValue(state == this.INPUT_ACTIVE ? this.ON_STATE : this.OFF_STATE);
 		} else {
 			gpio.write(this.pin, state == this.INPUT_ACTIVE ? this.OUTPUT_ACTIVE : this.OUTPUT_INACTIVE);
 			this.stateCharac.updateValue(state == this.INPUT_ACTIVE ? this.ON_STATE : this.OFF_STATE);
 		}
- 	}
+	}
 }
 
 function LockMechanism(accesory, log, config) {
@@ -415,11 +415,11 @@ function LockMechanism(accesory, log, config) {
 	this.pullUp = config.pullUp !== undefined ? config.pullUp : true;
 
 	this.OUTPUT_ACTIVE = this.inverted ? LOW : HIGH;
- 	this.OUTPUT_INACTIVE = this.inverted ? HIGH : LOW;
+	this.OUTPUT_INACTIVE = this.inverted ? HIGH : LOW;
 
 	gpio.init(this.pin, gpio.OUTPUT, this.OUTPUT_INACTIVE);
 
- 	if(this.inputPin) {
+	if (this.inputPin) {
 		gpio.init(this.inputPin, gpio.INPUT, gpio.INT_EDGE_BOTH, this.stateChange.bind(this), this.pullUp ? gpio.PULL_UP : gpio.PULL_OFF);
 	}
 
@@ -428,7 +428,7 @@ function LockMechanism(accesory, log, config) {
 		.on('set', this.setLockState.bind(this));
 	this.state = this.service.getCharacteristic(Characteristic.LockCurrentState);
 
-	if(this.inputPin === null) {
+	if (this.inputPin === null) {
 		this.target.updateValue(Characteristic.LockCurrentState.SECURED);
 		this.state.updateValue(Characteristic.LockCurrentState.SECURED);
 	} else {
@@ -438,65 +438,65 @@ function LockMechanism(accesory, log, config) {
 	accesory.addService(this.service);
 
 	// Make sure output is in locked state (issue #4)
-	if(this.duration) {
-		setTimeout(function(){
+	if (this.duration) {
+		setTimeout(function () {
 			gpio.write(this.pin, this.OUTPUT_INACTIVE);
 		}.bind(this), this.duration * 1000);
 	}
 }
 
 LockMechanism.prototype = {
-  	setLockState: function(value, callback) {
- 		if(value == Characteristic.LockTargetState.UNSECURED) {
+	setLockState: function (value, callback) {
+		if (value == Characteristic.LockTargetState.UNSECURED) {
 			this.log("Open LockMechanism on PIN: " + this.pin);
- 			gpio.write(this.pin, this.OUTPUT_ACTIVE);
- 			callback();
- 			if(this.inputPin === null) {
- 				setTimeout(function(){
- 					this.state.updateValue(Characteristic.LockCurrentState.UNSECURED);
- 				}.bind(this), 1000);
- 			}
- 			if(this.duration) {
-				setTimeout(function(){
+			gpio.write(this.pin, this.OUTPUT_ACTIVE);
+			callback();
+			if (this.inputPin === null) {
+				setTimeout(function () {
+					this.state.updateValue(Characteristic.LockCurrentState.UNSECURED);
+				}.bind(this), 1000);
+			}
+			if (this.duration) {
+				setTimeout(function () {
 					this.log("Close LockMechanism on PIN: " + this.pin);
 					gpio.write(this.pin, this.OUTPUT_INACTIVE);
 					this.target.updateValue(Characteristic.LockTargetState.SECURED);
-					if(this.inputPin === null) {
- 						this.state.updateValue(Characteristic.LockCurrentState.SECURED);
+					if (this.inputPin === null) {
+						this.state.updateValue(Characteristic.LockCurrentState.SECURED);
 					}
 				}.bind(this), this.duration * 1000);
- 			}
- 		} else {
+			}
+		} else {
 			this.log("Close LockMechanism on PIN: " + this.pin);
- 			gpio.write(this.pin, this.OUTPUT_INACTIVE);
- 			callback();
- 			if(this.inputPin === null) {
- 				setTimeout(function(){
- 					this.state.updateValue(Characteristic.LockCurrentState.SECURED);
- 				}.bind(this), 1000);
- 			}
- 		}
+			gpio.write(this.pin, this.OUTPUT_INACTIVE);
+			callback();
+			if (this.inputPin === null) {
+				setTimeout(function () {
+					this.state.updateValue(Characteristic.LockCurrentState.SECURED);
+				}.bind(this), 1000);
+			}
+		}
 	},
 
-	getLockState: function(callback) {
+	getLockState: function (callback) {
 		var state = gpio.read(this.pin);
- 		callback(null, state == this.INPUT_ACTIVE ? Characteristic.LockCurrentState.UNSECURED : Characteristic.LockCurrentState.SECURED);
+		callback(null, state == this.INPUT_ACTIVE ? Characteristic.LockCurrentState.UNSECURED : Characteristic.LockCurrentState.SECURED);
 	},
 
-	stateChange: function(delta) {
-		if(this.unbouncingID == null) {
-			this.unbouncingID = setTimeout(function() {
+	stateChange: function (delta) {
+		if (this.unbouncingID == null) {
+			this.unbouncingID = setTimeout(function () {
 				this.unbouncingID = null;
 				var state = gpio.read(this.inputPin);
 				this.state.updateValue(state == this.INPUT_ACTIVE ? Characteristic.LockCurrentState.UNSECURED : Characteristic.LockCurrentState.SECURED);
- 				this.target.updateValue(state == this.INPUT_ACTIVE ? Characteristic.LockTargetState.UNSECURED : Characteristic.LockTargetState.SECURED);
+				this.target.updateValue(state == this.INPUT_ACTIVE ? Characteristic.LockTargetState.UNSECURED : Characteristic.LockTargetState.SECURED);
 			}.bind(this), this.postpone);
 		}
- 	}
+	}
 }
 
 function RollerShutter(accesory, log, config) {
-	if(config.pins.length != 2) throw new Error("'pins' parameter must contains 2 pin numbers");
+	if (config.pins.length != 2) throw new Error("'pins' parameter must contains 2 pin numbers");
 
 	this.log = log;
 
@@ -515,13 +515,13 @@ function RollerShutter(accesory, log, config) {
 	this.pullUp = config.pullUp !== undefined ? config.pullUp : true;
 
 	this.OUTPUT_ACTIVE = this.inverted ? LOW : HIGH;
- 	this.OUTPUT_INACTIVE = this.inverted ? HIGH : LOW;
+	this.OUTPUT_INACTIVE = this.inverted ? HIGH : LOW;
 
 	this.INPUT_ACTIVE = this.invertedInputs ? HIGH : LOW;
- 	this.INPUT_INACTIVE = this.invertedInputs ? LOW : HIGH;
+	this.INPUT_INACTIVE = this.invertedInputs ? LOW : HIGH;
 
 	this.service = new Service[config.type](config.name);
-	this.shift = {id:null, start:0, value:0, target:0};
+	this.shift = { id: null, start: 0, value: 0, target: 0 };
 
 	gpio.init(this.openPin, gpio.OUTPUT, this.OUTPUT_INACTIVE);
 	gpio.init(this.closePin, gpio.OUTPUT, this.OUTPUT_INACTIVE);
@@ -533,7 +533,7 @@ function RollerShutter(accesory, log, config) {
 		.on('set', this.setPosition.bind(this));
 
 	// Configure inputs
-	if(this.openSensorPin !== null) {
+	if (this.openSensorPin !== null) {
 		gpio.init(
 			this.openSensorPin,
 			gpio.INPUT,
@@ -543,7 +543,7 @@ function RollerShutter(accesory, log, config) {
 		);
 	}
 
-	if(this.closeSensorPin !== null) {
+	if (this.closeSensorPin !== null) {
 		gpio.init(
 			this.closeSensorPin,
 			gpio.INPUT,
@@ -555,16 +555,16 @@ function RollerShutter(accesory, log, config) {
 
 	// Default position if no sensors
 	var defaultPosition = this.initPosition;
-	if(this.closeSensorPin !== null) {
+	if (this.closeSensorPin !== null) {
 		var state = gpio.read(this.closeSensorPin);
-		if(state === this.INPUT_ACTIVE) {
+		if (state === this.INPUT_ACTIVE) {
 			defaultPosition = 0;
 		}
 	}
 
-	if(this.openSensorPin !== null) {
+	if (this.openSensorPin !== null) {
 		var state = gpio.read(this.openSensorPin);
-		if(state === this.INPUT_ACTIVE) {
+		if (state === this.INPUT_ACTIVE) {
 			defaultPosition = 100;
 		}
 	}
@@ -576,22 +576,22 @@ function RollerShutter(accesory, log, config) {
 }
 
 RollerShutter.prototype = {
-  	minMax: function(value) {
- 		return Math.max(Math.min(value, 0), 100);
- 	},
+	minMax: function (value) {
+		return Math.max(Math.min(value, 0), 100);
+	},
 
- 	setPosition: function(value, callback) {
+	setPosition: function (value, callback) {
 		var currentPos = this.positionCharac.value;
 
 		// Nothing to do
-		if(value == currentPos) {
+		if (value == currentPos) {
 			callback();
 			return;
 		}
 
-		if(this.shift.id) {
+		if (this.shift.id) {
 			var diff = Date.now() - this.shift.start;
-			if(diff > 1000) {
+			if (diff > 1000) {
 				// Operation already in progress. Cancel timer and update computed current position
 				clearTimeout(this.shift.id);
 				this.shift.id = null;
@@ -607,7 +607,7 @@ RollerShutter.prototype = {
 		this.log("Requesting shifting " + currentPos + " -> " + value);
 
 		var newShiftValue = value - currentPos;
-		if(Math.sign(newShiftValue) != Math.sign(this.shift.value)) { // Change shifting direction
+		if (Math.sign(newShiftValue) != Math.sign(this.shift.value)) { // Change shifting direction
 			this.pinPulse(newShiftValue, true);
 		}
 		this.shift.value = newShiftValue;
@@ -617,44 +617,44 @@ RollerShutter.prototype = {
 		callback();
 	},
 
-	motionEnd: function() {
-		if(this.shift.target < 100 && this.shift.target > 0) {
-			if(this.invertStopPin === true) {
+	motionEnd: function () {
+		if (this.shift.target < 100 && this.shift.target > 0) {
+			if (this.invertStopPin === true) {
 				// stop shutter by pulsing the opposite pin
 				var pin = this.shift.value > 0 ? this.closePin : this.openPin;
 				gpio.write(pin, this.OUTPUT_ACTIVE);
 				gpio.delay(this.pulseDuration);
 				gpio.write(pin, this.OUTPUT_INACTIVE);
-				this.log("Pulse pin "+pin+" to stop motion");
+				this.log("Pulse pin " + pin + " to stop motion");
 			} else {
 				this.pinPulse(this.shift.value, false); // Stop shutter by pulsing same pin another time
 			}
 		}
 
-		if(this.restoreTarget) {
+		if (this.restoreTarget) {
 			this.positionCharac.updateValue(this.initPosition);
 			this.targetCharac.updateValue(this.initPosition);
 		} else {
 			this.positionCharac.updateValue(this.shift.target);
 		}
-		this.log("Shifting ends at "+this.shift.target);
+		this.log("Shifting ends at " + this.shift.target);
 		this.shift.id = null;
 		this.shift.start = 0;
 		this.shift.value = 0;
 		this.shift.target = 0;
 	},
 
-	pinPulse: function(shiftValue, start) {
+	pinPulse: function (shiftValue, start) {
 		var pin = shiftValue > 0 ? this.openPin : this.closePin;
 		var oppositePin = shiftValue > 0 ? this.closePin : this.openPin;
 		this.shift.start = Date.now();
-		if(this.pulseDuration) {
+		if (this.pulseDuration) {
 			this.log('Pulse pin ' + pin);
 			gpio.write(pin, this.OUTPUT_ACTIVE);
 			gpio.delay(this.pulseDuration);
 			gpio.write(pin, this.OUTPUT_INACTIVE);
 		} else {
-			if(start) {
+			if (start) {
 				this.log('Start ' + pin + ' / Stop ' + oppositePin);
 				gpio.write(oppositePin, this.OUTPUT_INACTIVE);
 				gpio.write(pin, this.OUTPUT_ACTIVE);
@@ -665,14 +665,14 @@ RollerShutter.prototype = {
 		}
 	},
 
-	stateChange: function(pin, delta) {
- 		if(this.unbouncingID == null) {
-			this.unbouncingID = setTimeout(function() {
+	stateChange: function (pin, delta) {
+		if (this.unbouncingID == null) {
+			this.unbouncingID = setTimeout(function () {
 				this.unbouncingID = null;
 
 				var state = pin ? gpio.read(pin) : 0;
-				if(pin === this.closeSensorPin) {
-					if(state == this.INPUT_ACTIVE) {
+				if (pin === this.closeSensorPin) {
+					if (state == this.INPUT_ACTIVE) {
 						clearTimeout(this.shift.id);
 						this.shift.id = null;
 						this.targetCharac.updateValue(0);
@@ -680,8 +680,8 @@ RollerShutter.prototype = {
 					}
 					this.stateCharac.updateValue(state == this.INPUT_ACTIVE ? Characteristic.PositionState.STOPPED : Characteristic.PositionState.INCREASING);
 					this.log("closeSensorPin state change " + state);
-				} else if(pin === this.openSensorPin) {
-					if(state == this.INPUT_ACTIVE) {
+				} else if (pin === this.openSensorPin) {
+					if (state == this.INPUT_ACTIVE) {
 						clearTimeout(this.shift.id);
 						this.shift.id = null;
 						this.targetCharac.updateValue(100);
@@ -696,7 +696,7 @@ RollerShutter.prototype = {
 				}
 			}.bind(this), this.postpone);
 		}
- 	}
+	}
 }
 
 function GarageDoor(accesory, log, config) {
@@ -706,7 +706,7 @@ function GarageDoor(accesory, log, config) {
 	this.inverted = config.inverted || false;
 	this.autoClose = config.autoClose || false;
 	this.pulseDuration = config.pulseDuration !== undefined ? config.pulseDuration : 200;
-	if(config.shiftDuration) {
+	if (config.shiftDuration) {
 		this.openingDuration = config.shiftDuration * 1000;
 		this.closingDuration = config.shiftDuration * 1000;
 		this.waitingDuration = 5000;
@@ -722,15 +722,15 @@ function GarageDoor(accesory, log, config) {
 	this.unbouncing = config.unbouncing || 500;
 
 	this.OUTPUT_ACTIVE = this.inverted ? LOW : HIGH;
- 	this.OUTPUT_INACTIVE = this.inverted ? HIGH : LOW;
+	this.OUTPUT_INACTIVE = this.inverted ? HIGH : LOW;
 
 	this.INPUT_ACTIVE = this.invertedInputs ? HIGH : LOW;
- 	this.INPUT_INACTIVE = this.invertedInputs ? LOW : HIGH;
+	this.INPUT_INACTIVE = this.invertedInputs ? LOW : HIGH;
 
 	this.service = new Service[config.type](config.name);
 
-	if(config.pin === undefined) {
-		if(config.pins.length != 2) throw new Error("'pins' parameter must contains 2 pin numbers");
+	if (config.pin === undefined) {
+		if (config.pins.length != 2) throw new Error("'pins' parameter must contains 2 pin numbers");
 		this.openPin = config.pins[0];
 		this.closePin = config.pins[1];
 
@@ -746,8 +746,8 @@ function GarageDoor(accesory, log, config) {
 	this.targetCharac = this.service.getCharacteristic(Characteristic.TargetDoorState);
 
 	// Configure inputs
-	if(this.openSensorPin !== null) {
-		this.log("Init input openSensorPin["+this.openSensorPin+"] " + (this.pullUp ? "with pull-up" : "floating"));
+	if (this.openSensorPin !== null) {
+		this.log("Init input openSensorPin[" + this.openSensorPin + "] " + (this.pullUp ? "with pull-up" : "floating"));
 		gpio.init(
 			this.openSensorPin,
 			gpio.INPUT,
@@ -758,8 +758,8 @@ function GarageDoor(accesory, log, config) {
 		this.lastOpenPinState = gpio.read(this.openSensorPin);
 	}
 
-	if(this.closeSensorPin !== null) {
-		this.log("Init input closeSensorPin["+this.closeSensorPin+"] " + (this.pullUp ? "with pull-up" : "floating"));
+	if (this.closeSensorPin !== null) {
+		this.log("Init input closeSensorPin[" + this.closeSensorPin + "] " + (this.pullUp ? "with pull-up" : "floating"));
 		gpio.init(
 			this.closeSensorPin,
 			gpio.INPUT,
@@ -771,11 +771,11 @@ function GarageDoor(accesory, log, config) {
 	}
 
 	// Init default state
-	if(this.closeSensorPin !== null) {
+	if (this.closeSensorPin !== null) {
 		this.stateCharac.updateValue(this.lastClosePinState == this.INPUT_ACTIVE ? Characteristic.CurrentDoorState.CLOSED : Characteristic.CurrentDoorState.OPEN);
 		this.targetCharac.updateValue(this.lastClosePinState == this.INPUT_ACTIVE ? Characteristic.TargetDoorState.CLOSED : Characteristic.TargetDoorState.OPEN);
 		this.log(this.lastClosePinState == this.INPUT_ACTIVE ? "closeSensor active => door closed" : "closeSensor inactive => door opened");
-	} else if(this.openSensorPin !== null) {
+	} else if (this.openSensorPin !== null) {
 		this.stateCharac.updateValue(this.lastOpenPinState == this.INPUT_ACTIVE ? Characteristic.CurrentDoorState.OPEN : Characteristic.CurrentDoorState.CLOSED);
 		this.targetCharac.updateValue(this.lastOpenPinState == this.INPUT_ACTIVE ? Characteristic.TargetDoorState.OPEN : Characteristic.TargetDoorState.CLOSED);
 		this.log(this.lastOpenPinState == this.INPUT_ACTIVE ? "openSensor active => door opened" : "openSensor inactive => door closed");
@@ -793,20 +793,20 @@ function GarageDoor(accesory, log, config) {
 }
 
 GarageDoor.prototype = {
- 	setState: function(value, callback) {
- 		if(this.shiftTimeoutID != null) {
+	setState: function (value, callback) {
+		if (this.shiftTimeoutID != null) {
 			clearTimeout(this.shiftTimeoutID);
 			this.shiftTimeoutID = null;
 		}
 
-		if(value == this.stateCharac.value) {
+		if (value == this.stateCharac.value) {
 			callback();
 			this.log("Already at state " + value);
 			return;
 		}
 
 		var pin = null;
-		if(this.togglePin === undefined) {
+		if (this.togglePin === undefined) {
 			pin = (value == Characteristic.TargetDoorState.OPEN) ? this.openPin : this.closePin;
 		} else {
 			pin = this.togglePin;
@@ -817,29 +817,29 @@ GarageDoor.prototype = {
 		gpio.write(pin, this.OUTPUT_INACTIVE);
 		callback();
 
-		if((value == Characteristic.TargetDoorState.OPEN && (this.closeSensorPin === null || this.lastClosePinState == this.INPUT_INACTIVE)) || (value == Characteristic.TargetDoorState.CLOSED && (this.openSensorPin === null || this.lastOpenPinState == this.INPUT_INACTIVE))) {
+		if ((value == Characteristic.TargetDoorState.OPEN && (this.closeSensorPin === null || this.lastClosePinState == this.INPUT_INACTIVE)) || (value == Characteristic.TargetDoorState.CLOSED && (this.openSensorPin === null || this.lastOpenPinState == this.INPUT_INACTIVE))) {
 
 			// Update state if we don't have departure sensor
 			this.stateCharac.updateValue(value == Characteristic.TargetDoorState.OPEN ? Characteristic.CurrentDoorState.OPENING : Characteristic.CurrentDoorState.CLOSING);
 
-			if((value == Characteristic.TargetDoorState.OPEN && this.openSensorPin === null) || (value == Characteristic.TargetDoorState.CLOSED && this.closeSensorPin === null)) {
+			if ((value == Characteristic.TargetDoorState.OPEN && this.openSensorPin === null) || (value == Characteristic.TargetDoorState.CLOSED && this.closeSensorPin === null)) {
 
 				// Update state if we don't have arrival sensor
-				this.log("Emulate "+(value == Characteristic.TargetDoorState.OPEN ? "opening" : "closing")+" delay...");
-				this.shiftTimeoutID = setTimeout(function(){
+				this.log("Emulate " + (value == Characteristic.TargetDoorState.OPEN ? "opening" : "closing") + " delay...");
+				this.shiftTimeoutID = setTimeout(function () {
 					this.stateCharac.updateValue(value == Characteristic.TargetDoorState.OPEN ? Characteristic.CurrentDoorState.OPEN : Characteristic.CurrentDoorState.CLOSED);
 
-					if(value == Characteristic.TargetDoorState.OPEN && this.waitingDuration > 0 && this.openSensorPin === null) {
+					if (value == Characteristic.TargetDoorState.OPEN && this.waitingDuration > 0 && this.openSensorPin === null) {
 						// Update state to closing if in cyclic mode if we don't have departure sensor
 						this.log("Emulate waiting delay...");
-						this.shiftTimeoutID = setTimeout(function(){
+						this.shiftTimeoutID = setTimeout(function () {
 
 							this.targetCharac.updateValue(Characteristic.TargetDoorState.CLOSED);
 							this.stateCharac.updateValue(Characteristic.CurrentDoorState.CLOSING);
-							if(this.closeSensorPin === null) {
+							if (this.closeSensorPin === null) {
 								// Update state to closed if we don't have arrival sensor
 								this.log("Emulate closing delay...");
-								this.shiftTimeoutID = setTimeout(function(){
+								this.shiftTimeoutID = setTimeout(function () {
 
 									this.stateCharac.updateValue(Characteristic.CurrentDoorState.CLOSED);
 									this.shiftTimeoutID = null;
@@ -853,39 +853,39 @@ GarageDoor.prototype = {
 				}.bind(this), value == Characteristic.TargetDoorState.OPEN ? this.openingDuration : this.closingDuration);
 			} else {
 				// Motion externally interrupted
-				this.shiftTimeoutID = setTimeout(function(){
+				this.shiftTimeoutID = setTimeout(function () {
 					this.log("Timeout expires. Restore target to " + (value == Characteristic.TargetDoorState.OPEN ? "closed" : "open"));
 					this.targetCharac.updateValue(!value);
-					this.getTargetState(function(error, state) { this.stateCharac.updateValue(state); }.bind(this));
+					this.getTargetState(function (error, state) { this.stateCharac.updateValue(state); }.bind(this));
 					this.shiftTimeoutID = null;
-				}.bind(this), 2*(value == Characteristic.TargetDoorState.OPEN ? this.openingDuration : this.closingDuration));
+				}.bind(this), 2 * (value == Characteristic.TargetDoorState.OPEN ? this.openingDuration : this.closingDuration));
 			}
 		}
 	},
 
- 	stateChange: function(pin, delta) {
- 		if(this.unbouncingID == null) {
-			this.unbouncingID = setTimeout(function() {
+	stateChange: function (pin, delta) {
+		if (this.unbouncingID == null) {
+			this.unbouncingID = setTimeout(function () {
 
-				if(this.shiftTimeoutID != null) {
+				if (this.shiftTimeoutID != null) {
 					clearTimeout(this.shiftTimeoutID);
 					this.shiftTimeoutID = null;
 				}
 				var state = pin ? gpio.read(pin) : 0;
-				if(pin === this.closeSensorPin && state != this.lastClosePinState) {
+				if (pin === this.closeSensorPin && state != this.lastClosePinState) {
 					this.lastClosePinState = state;
-					this.log("closeSensorPin["+pin+"] switch to " + state + " " + (state == this.INPUT_ACTIVE ? "(active) => door closed" : "(inactive) => door opening"));
+					this.log("closeSensorPin[" + pin + "] switch to " + state + " " + (state == this.INPUT_ACTIVE ? "(active) => door closed" : "(inactive) => door opening"));
 					this.targetCharac.updateValue(state == this.INPUT_ACTIVE ? Characteristic.TargetDoorState.CLOSED : Characteristic.TargetDoorState.OPEN);
 					this.stateCharac.updateValue(state == this.INPUT_ACTIVE ? Characteristic.CurrentDoorState.CLOSED : Characteristic.CurrentDoorState.OPENING);
 
-					if(state == this.INPUT_INACTIVE && this.openSensorPin === null) {
-						this.shiftTimeoutID = setTimeout(function(){
+					if (state == this.INPUT_INACTIVE && this.openSensorPin === null) {
+						this.shiftTimeoutID = setTimeout(function () {
 							this.stateCharac.updateValue(Characteristic.CurrentDoorState.OPEN);
 							this.log("Shift ends => door opened");
-							if(this.waitingDuration > 0) {
+							if (this.waitingDuration > 0) {
 								// Update state to closing if in cyclic mode if we don't have departure sensor
 								this.log("Emulate waiting delay...");
-								this.shiftTimeoutID = setTimeout(function(){
+								this.shiftTimeoutID = setTimeout(function () {
 
 									this.targetCharac.updateValue(Characteristic.TargetDoorState.CLOSED);
 									this.stateCharac.updateValue(Characteristic.CurrentDoorState.CLOSING);
@@ -896,21 +896,21 @@ GarageDoor.prototype = {
 							}
 						}.bind(this), this.openingDuration);
 					}
-				} else if(pin === this.openSensorPin && state != this.lastOpenPinState) {
+				} else if (pin === this.openSensorPin && state != this.lastOpenPinState) {
 					this.lastOpenPinState = state;
-					this.log("openSensorPin["+pin+"] switch to " + state + " " + (state == this.INPUT_ACTIVE ? "(active) => door opened" : "(inactive) => door closing"));
+					this.log("openSensorPin[" + pin + "] switch to " + state + " " + (state == this.INPUT_ACTIVE ? "(active) => door opened" : "(inactive) => door closing"));
 					this.targetCharac.updateValue(state == this.INPUT_ACTIVE ? Characteristic.TargetDoorState.OPEN : Characteristic.TargetDoorState.CLOSED);
 					this.stateCharac.updateValue(state == this.INPUT_ACTIVE ? Characteristic.CurrentDoorState.OPEN : Characteristic.CurrentDoorState.CLOSING);
 
-					if(state == this.INPUT_INACTIVE && this.closeSensorPin === null) {
-						this.shiftTimeoutID = setTimeout(function(){
+					if (state == this.INPUT_INACTIVE && this.closeSensorPin === null) {
+						this.shiftTimeoutID = setTimeout(function () {
 							this.stateCharac.updateValue(Characteristic.CurrentDoorState.CLOSED);
 							this.shiftTimeoutID = null;
 							this.log("Shift ends => door closed");
 						}.bind(this), this.closingDuration);
 					}
 				} else {
-					this.log("sensorPin["+pin+"] switch to " + state + " => nothing to do (unknown pin or no state change)");
+					this.log("sensorPin[" + pin + "] switch to " + state + " => nothing to do (unknown pin or no state change)");
 					//this.targetCharac.updateValue(Characteristic.TargetDoorState.CLOSED);
 					//this.stateCharac.updateValue(Characteristic.CurrentDoorState.CLOSED);
 				}
@@ -920,21 +920,21 @@ GarageDoor.prototype = {
 		} else {
 			//this.log("State change ignored");
 		}
- 	},
+	},
 
- 	getState: function(callback) {
- 		if(this.shiftTimeoutID != null) {
- 			callback(null, this.stateCharac.value);
- 		} else {
+	getState: function (callback) {
+		if (this.shiftTimeoutID != null) {
+			callback(null, this.stateCharac.value);
+		} else {
 			this.getTargetState(callback);
 		}
- 	},
+	},
 
- 	getTargetState: function(callback) {
- 		if(this.shiftTimeoutID != null) {
- 			callback(null, this.targetCharac.value);
- 		} else {
-			if(this.closeSensorPin !== null) {
+	getTargetState: function (callback) {
+		if (this.shiftTimeoutID != null) {
+			callback(null, this.targetCharac.value);
+		} else {
+			if (this.closeSensorPin !== null) {
 				var closeState = gpio.read(this.closeSensorPin);
 				callback(null, closeState == this.INPUT_ACTIVE ? Characteristic.TargetDoorState.CLOSED : Characteristic.TargetDoorState.OPEN);
 			} else {
@@ -942,7 +942,7 @@ GarageDoor.prototype = {
 				callback(null, openState == this.INPUT_ACTIVE ? Characteristic.TargetDoorState.OPEN : this.targetCharac.value);
 			}
 		}
- 	}
+	}
 }
 
 function ProgrammableSwitch(accesory, log, config) {
@@ -955,10 +955,10 @@ function ProgrammableSwitch(accesory, log, config) {
 	this.pullUp = config.pullUp !== undefined ? config.pullUp : true;
 
 	this.INPUT_ACTIVE = this.inverted ? HIGH : LOW;
- 	this.INPUT_INACTIVE = this.inverted ? LOW : HIGH;
+	this.INPUT_INACTIVE = this.inverted ? LOW : HIGH;
 
- 	this.counter = 0;
- 	this.start = null;
+	this.counter = 0;
+	this.start = null;
 
 	var service = new Service[config.type](config.name);
 
@@ -976,28 +976,28 @@ function ProgrammableSwitch(accesory, log, config) {
 }
 
 ProgrammableSwitch.prototype = {
- 	stateChange: function(delta) {
- 		if(this.postponeId == null) {
-			this.postponeId = setTimeout(function() {
+	stateChange: function (delta) {
+		if (this.postponeId == null) {
+			this.postponeId = setTimeout(function () {
 				this.postponeId = null;
 				var state = gpio.read(this.pin);
-				if(state == this.INPUT_ACTIVE) {
-					this.longPressPending = setTimeout(function() {
+				if (state == this.INPUT_ACTIVE) {
+					this.longPressPending = setTimeout(function () {
 						this.eventCharac.updateValue(Characteristic.ProgrammableSwitchEvent.LONG_PRESS);
 						this.longPressPending = null;
 						this.counter = 0;
 					}.bind(this), this.longPress);
 				} else {
 					this.counter++;
-					if(this.longPressPending) {
+					if (this.longPressPending) {
 						clearTimeout(this.longPressPending);
-						if(this.pressPending) {
+						if (this.pressPending) {
 							clearTimeout(this.pressPending);
 							this.eventCharac.updateValue(Characteristic.ProgrammableSwitchEvent.DOUBLE_PRESS);
 							this.pressPending = null;
 							this.counter = 0;
 						} else {
-							this.pressPending = setTimeout(function() {
+							this.pressPending = setTimeout(function () {
 								this.eventCharac.updateValue(Characteristic.ProgrammableSwitchEvent.SINGLE_PRESS);
 								this.pressPending = null;
 								this.counter = 0;
@@ -1006,6 +1006,6 @@ ProgrammableSwitch.prototype = {
 					}
 				}
 			}.bind(this), this.postpone);
- 		}
- 	}
+		}
+	}
 }
