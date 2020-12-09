@@ -221,7 +221,7 @@ function DigitalInput(accesory, log, config) {
 DigitalInput.prototype = {
 	stateChange: async function (delta) {
 		if (this.postponeId == null) {
-			this.postponeId = setTimeout(function () {
+			this.postponeId = setTimeout(async function () {
 				this.postponeId = null;
 				var state = await gpio.read(this.pin);
 				this.stateCharac.updateValue(state == this.INPUT_ACTIVE ? this.ON_STATE : this.OFF_STATE);
@@ -234,7 +234,7 @@ DigitalInput.prototype = {
 
 	toggleState: async function (delta) {
 		if (this.postponeId == null) {
-			this.postponeId = setTimeout(function () {
+			this.postponeId = setTimeout(async function () {
 				this.postponeId = null;
 				var state = await gpio.read(this.pin);
 				this.stateCharac.updateValue(this.stateCharac.value == this.ON_STATE ? this.OFF_STATE : this.ON_STATE);
