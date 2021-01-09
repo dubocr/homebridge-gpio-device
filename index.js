@@ -83,6 +83,7 @@ function timer(callback, delay) {
 }
 
 function DeviceAccesory(log, config) {
+	return;
 	this.services = [];
 
 	if(!config.type) throw new Error("'type' parameter is missing");
