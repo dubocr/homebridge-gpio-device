@@ -94,7 +94,7 @@ Configuration example:
 }
 ```
 
-`pin` numbers must be specified as wPi pin number in the `Pin Configuration` table below
+`pin` numbers must be specified as ~~wPi~~ **BCM** (as of v0.4.7) pin number in the `Pin Configuration` table below
 
 ## Common configuration
 
