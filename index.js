@@ -8,12 +8,14 @@ const LOW = Gpio.LOW;
 var gpio = {
 	INPUT: 'in',
 	OUTPUT: 'out',
+	OUTPUT_HIGH: 'high',
+	OUTPUT_LOW: 'low',
 	INT_EDGE_BOTH: 'both',
 	INT_EDGE_FALLING: 'falling',
 	INT_EDGE_RISING: 'rising',
 	io: [],
 	init: function (pin, direction, edge, callback, pull) {
-		if (direction == this.INPUT) {
+		if (direction === this.INPUT) {
 			this.io[pin] = new Gpio(pin, direction, edge, { debounceTimeout: 10 });
 			this.io[pin].watch(callback);
 		} else {
@@ -49,6 +51,16 @@ module.exports = function (homebridge) {
 	Types = homebridge.hapLegacyTypes;
 
 	homebridge.registerAccessory("GPIODevice", DeviceAccesory);
+}
+
+function outputDirectionWithInitState(initState) {
+	if (initState === HIGH) {
+		return gpio.OUTPUT_HIGH;
+	} else if (initState === LOW) {
+		return gpio.OUTPUT_LOW;
+	} else {
+		throw 'Invalid initState for output';
+	}
 }
 
 function timer(callback, delay) {
@@ -283,7 +295,7 @@ function DigitalOutput(accesory, log, config) {
 	this.ON_STATE = 1;
 	this.OFF_STATE = 0;
 
-	gpio.init(this.pin, gpio.OUTPUT, this.initState ? this.OUTPUT_ACTIVE : this.OUTPUT_INACTIVE);
+	gpio.init(this.pin, outputDirectionWithInitState(this.initState ? this.OUTPUT_ACTIVE : this.OUTPUT_INACTIVE));
 
 	if (this.inputPin) {
 		gpio.init(
@@ -417,7 +429,7 @@ function LockMechanism(accesory, log, config) {
 	this.OUTPUT_ACTIVE = this.inverted ? LOW : HIGH;
 	this.OUTPUT_INACTIVE = this.inverted ? HIGH : LOW;
 
-	gpio.init(this.pin, gpio.OUTPUT, this.OUTPUT_INACTIVE);
+	gpio.init(this.pin, outputDirectionWithInitState(this.OUTPUT_INACTIVE));
 
 	if (this.inputPin) {
 		gpio.init(this.inputPin, gpio.INPUT, gpio.INT_EDGE_BOTH, this.stateChange.bind(this), this.pullUp ? gpio.PULL_UP : gpio.PULL_OFF);
@@ -523,8 +535,8 @@ function RollerShutter(accesory, log, config) {
 	this.service = new Service[config.type](config.name);
 	this.shift = { id: null, start: 0, value: 0, target: 0 };
 
-	gpio.init(this.openPin, gpio.OUTPUT, this.OUTPUT_INACTIVE);
-	gpio.init(this.closePin, gpio.OUTPUT, this.OUTPUT_INACTIVE);
+	gpio.init(this.openPin, outputDirectionWithInitState(this.OUTPUT_INACTIVE));
+	gpio.init(this.closePin, outputDirectionWithInitState(this.OUTPUT_INACTIVE));
 
 	this.stateCharac = this.service.getCharacteristic(Characteristic.PositionState)
 		.updateValue(Characteristic.PositionState.STOPPED);
@@ -734,12 +746,12 @@ function GarageDoor(accesory, log, config) {
 		this.openPin = config.pins[0];
 		this.closePin = config.pins[1];
 
-		gpio.init(this.openPin, gpio.OUTPUT, this.OUTPUT_INACTIVE);
-		gpio.init(this.closePin, gpio.OUTPUT, this.OUTPUT_INACTIVE);
+		gpio.init(this.openPin, outputDirectionWithInitState(this.OUTPUT_INACTIVE));
+		gpio.init(this.closePin, outputDirectionWithInitState(this.OUTPUT_INACTIVE));
 	} else {
 		this.togglePin = config.pin;
 
-		gpio.init(this.togglePin, gpio.OUTPUT, this.OUTPUT_INACTIVE);
+		gpio.init(this.togglePin, outputDirectionWithInitState(this.OUTPUT_INACTIVE));
 	}
 
 	this.stateCharac = this.service.getCharacteristic(Characteristic.CurrentDoorState);
