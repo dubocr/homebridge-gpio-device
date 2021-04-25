@@ -864,62 +864,61 @@ GarageDoor.prototype = {
 	},
 
 	stateChange: function (pin, delta) {
-		if (this.unbouncingID == null) {
-			this.unbouncingID = setTimeout(function () {
-
-				if (this.shiftTimeoutID != null) {
-					clearTimeout(this.shiftTimeoutID);
-					this.shiftTimeoutID = null;
-				}
-				var state = pin ? gpio.read(pin) : 0;
-				if (pin === this.closeSensorPin && state != this.lastClosePinState) {
-					this.lastClosePinState = state;
-					this.log("closeSensorPin[" + pin + "] switch to " + state + " " + (state == this.INPUT_ACTIVE ? "(active) => door closed" : "(inactive) => door opening"));
-					this.targetCharac.updateValue(state == this.INPUT_ACTIVE ? Characteristic.TargetDoorState.CLOSED : Characteristic.TargetDoorState.OPEN);
-					this.stateCharac.updateValue(state == this.INPUT_ACTIVE ? Characteristic.CurrentDoorState.CLOSED : Characteristic.CurrentDoorState.OPENING);
-
-					if (state == this.INPUT_INACTIVE && this.openSensorPin === null) {
-						this.shiftTimeoutID = setTimeout(function () {
-							this.stateCharac.updateValue(Characteristic.CurrentDoorState.OPEN);
-							this.log("Shift ends => door opened");
-							if (this.waitingDuration > 0) {
-								// Update state to closing if in cyclic mode if we don't have departure sensor
-								this.log("Emulate waiting delay...");
-								this.shiftTimeoutID = setTimeout(function () {
-
-									this.targetCharac.updateValue(Characteristic.TargetDoorState.CLOSED);
-									this.stateCharac.updateValue(Characteristic.CurrentDoorState.CLOSING);
-									this.shiftTimeoutID = null;
-								}.bind(this), this.waitingDuration);
-							} else {
-								this.shiftTimeoutID = null;
-							}
-						}.bind(this), this.openingDuration);
-					}
-				} else if (pin === this.openSensorPin && state != this.lastOpenPinState) {
-					this.lastOpenPinState = state;
-					this.log("openSensorPin[" + pin + "] switch to " + state + " " + (state == this.INPUT_ACTIVE ? "(active) => door opened" : "(inactive) => door closing"));
-					this.targetCharac.updateValue(state == this.INPUT_ACTIVE ? Characteristic.TargetDoorState.OPEN : Characteristic.TargetDoorState.CLOSED);
-					this.stateCharac.updateValue(state == this.INPUT_ACTIVE ? Characteristic.CurrentDoorState.OPEN : Characteristic.CurrentDoorState.CLOSING);
-
-					if (state == this.INPUT_INACTIVE && this.closeSensorPin === null) {
-						this.shiftTimeoutID = setTimeout(function () {
-							this.stateCharac.updateValue(Characteristic.CurrentDoorState.CLOSED);
-							this.shiftTimeoutID = null;
-							this.log("Shift ends => door closed");
-						}.bind(this), this.closingDuration);
-					}
-				} else {
-					this.log("sensorPin[" + pin + "] switch to " + state + " => nothing to do (unknown pin or no state change)");
-					//this.targetCharac.updateValue(Characteristic.TargetDoorState.CLOSED);
-					//this.stateCharac.updateValue(Characteristic.CurrentDoorState.CLOSED);
-				}
-				this.unbouncingID = null;
-
-			}.bind(this), this.unbouncing);
-		} else {
-			//this.log("State change ignored");
+		if (this.unbouncingID != null) {
+			clearTimeout(this.unbouncingID);
 		}
+		this.unbouncingID = setTimeout(function () {
+
+			if (this.shiftTimeoutID != null) {
+				clearTimeout(this.shiftTimeoutID);
+				this.shiftTimeoutID = null;
+			}
+			var state = pin ? gpio.read(pin) : 0;
+			if (pin === this.closeSensorPin && state != this.lastClosePinState) {
+				this.lastClosePinState = state;
+				this.log("closeSensorPin[" + pin + "] switch to " + state + " " + (state == this.INPUT_ACTIVE ? "(active) => door closed" : "(inactive) => door opening"));
+				this.targetCharac.updateValue(state == this.INPUT_ACTIVE ? Characteristic.TargetDoorState.CLOSED : Characteristic.TargetDoorState.OPEN);
+				this.stateCharac.updateValue(state == this.INPUT_ACTIVE ? Characteristic.CurrentDoorState.CLOSED : Characteristic.CurrentDoorState.OPENING);
+
+				if (state == this.INPUT_INACTIVE && this.openSensorPin === null) {
+					this.shiftTimeoutID = setTimeout(function () {
+						this.stateCharac.updateValue(Characteristic.CurrentDoorState.OPEN);
+						this.log("Shift ends => door opened");
+						if (this.waitingDuration > 0) {
+							// Update state to closing if in cyclic mode if we don't have departure sensor
+							this.log("Emulate waiting delay...");
+							this.shiftTimeoutID = setTimeout(function () {
+
+								this.targetCharac.updateValue(Characteristic.TargetDoorState.CLOSED);
+								this.stateCharac.updateValue(Characteristic.CurrentDoorState.CLOSING);
+								this.shiftTimeoutID = null;
+							}.bind(this), this.waitingDuration);
+						} else {
+							this.shiftTimeoutID = null;
+						}
+					}.bind(this), this.openingDuration);
+				}
+			} else if (pin === this.openSensorPin && state != this.lastOpenPinState) {
+				this.lastOpenPinState = state;
+				this.log("openSensorPin[" + pin + "] switch to " + state + " " + (state == this.INPUT_ACTIVE ? "(active) => door opened" : "(inactive) => door closing"));
+				this.targetCharac.updateValue(state == this.INPUT_ACTIVE ? Characteristic.TargetDoorState.OPEN : Characteristic.TargetDoorState.CLOSED);
+				this.stateCharac.updateValue(state == this.INPUT_ACTIVE ? Characteristic.CurrentDoorState.OPEN : Characteristic.CurrentDoorState.CLOSING);
+
+				if (state == this.INPUT_INACTIVE && this.closeSensorPin === null) {
+					this.shiftTimeoutID = setTimeout(function () {
+						this.stateCharac.updateValue(Characteristic.CurrentDoorState.CLOSED);
+						this.shiftTimeoutID = null;
+						this.log("Shift ends => door closed");
+					}.bind(this), this.closingDuration);
+				}
+			} else {
+				this.log("sensorPin[" + pin + "] switch to " + state + " => nothing to do (unknown pin or no state change)");
+				//this.targetCharac.updateValue(Characteristic.TargetDoorState.CLOSED);
+				//this.stateCharac.updateValue(Characteristic.CurrentDoorState.CLOSED);
+			}
+			this.unbouncingID = null;
+
+		}.bind(this), this.unbouncing);
 	},
 
 	getState: function (callback) {

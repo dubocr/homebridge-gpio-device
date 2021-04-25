@@ -3,6 +3,9 @@
   "version": "0.4.7",
   "description": "Homebridge plugin exposing devices plugged on GPIO",
   "main": "index.js",
+  "scripts": {
+    "prepublishOnly": "npm version patch --m 'Release %s'"
+  },
   "keywords": [
     "homebridge-plugin",
     "gpio"
