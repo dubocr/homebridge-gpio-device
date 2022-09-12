@@ -214,7 +214,7 @@ function DigitalInput(accesory, log, config) {
 			this.pin,
 			gpio.INPUT,
 			gpio.INT_EDGE_BOTH,
-			this.toggleState.bind(this),
+			this.stateChange.bind(this),
 			this.pullUp ? gpio.PULL_UP : gpio.PULL_OFF
 		);
 	}
